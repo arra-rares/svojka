@@ -1,68 +1,103 @@
-## ARRA Landing Page — Battle Plan
-
-### Roles
-
-* **Product Owner (you):** decisions, constraints, validation
-* **Figma Make:** layout, visual system, assets integration
-* **Cursor / Claude:** implementation, wiring, deployment
+# ARRA Landing Page — Battle Plan (v2)
 
 ---
 
-# Phase 0 — Lock Decisions (no design yet)
+## Roles
 
-**Goal:** remove ambiguity before anyone builds anything
+* **Product Owner:** decisions, validation
+* **Figma Make:** structure + visual design
+* **Cursor / Claude:** implementation
 
-### Decisions to finalize
+---
 
-1. **Form backend**
+# Phase 0 — Locked Decisions (DO NOT CHANGE)
 
-   * → Email (simple, fast)
-   * Format: structured (JSON-like in body)
-   * Recipient: business email
-   * Backup: store locally (DB or log)
+## Backend
 
-2. **Discount logic (UI)**
+* Form → **email + file log (.jsonl)**
+* No attachments
+* Failure fallback → log only (still return success)
 
-   * Show inline:
+## Spam protection
 
-     ```
-     Extras: 120€ (60€ with Fotobox/360)
-     ```
-   * No hidden rules
+* honeypot + **reCAPTCHA v2**
 
-3. **Transport**
+## Availability
 
-   * Show rule only:
+* accept all leads
+* manual confirmation within 24h
 
-     ```
-     +0.35€/km from Bratislava / Vienna
-     ```
-   * No calculator
+## Pricing
 
-4. **Language URLs**
+* inline discounts:
 
-   * `/sk`, `/en`, `/de`
-   * Default redirect based on browser
+  ```
+  Extras: 120€ (60€ with Fotobox/360)
+  ```
+* highlight:
 
-5. **Analytics (minimum)**
+  * **3h = “Most popular”**
 
-   * `cta_click`
-   * `form_submit`
-   * `form_error`
+## Transport
+
+* show rule only:
+
+  ```
+  +0.35€/km from Bratislava / Vienna
+  ```
+
+## Gallery
+
+* locked state only
+* message:
+
+  > Access provided by event organizer
+* redirect to fotoshare
+
+## Language
+
+* routes:
+
+  * `/sk`, `/en`, `/de`
+* auto-detect + cookie persistence
+
+## Analytics
+
+* Google Analytics
+* events:
+
+  * `cta_click`
+  * `form_submit`
+  * `form_error`
+
+## Contact
+
+* **single floating CTA → WhatsApp**
+* prefilled message:
+
+  ```
+  Hi, I’m interested in your services for an event.
+  ```
+
+## Infra
+
+* hosting: Webhouse
+* **no CMS (v1)**
 
 ---
 
 # Phase 1 — Wireframe (Figma Make)
 
-**Goal:** structure, not beauty
+## Goal
 
-### Deliverable
+Structure only.
 
-* 1-page wireframe (all sections)
-* Mobile-first
-* No colors, no fancy visuals
+## Deliverable
 
-### Sections (fixed)
+* mobile-first wireframe
+* all sections present
+
+## Sections (fixed)
 
 1. Hero
 2. Social proof
@@ -73,145 +108,185 @@
 7. CTA
 8. Contact
 
-### Constraints
+## Constraints
 
-* Max 2–3 text lines per block
-* CTA always visible within 1 scroll
-* Pricing readable without interaction
+* CTA visible in first scroll
+* pricing readable without interaction
+* max 2–3 lines per block
 
 ---
 
 # Phase 2 — Visual Design (Figma Make)
 
-**Goal:** make it feel “premium but accessible”
+## Goal
 
-### Inputs
+Premium but accessible.
 
-* real photos (critical)
+## Inputs
+
+* real photos (mandatory)
 * logo
-* colors (limited palette)
+* minimal color palette
 
-### Output
+## Output
 
-* final desktop + mobile design
-* components:
+* mobile + desktop
+* reusable components
 
-  * buttons
-  * pricing cards
-  * service cards
-  * testimonial block
-
-### Rules
+## Rules
 
 * images dominate
-* no animations in design phase
-* avoid gradients/noise
+* no animations
+* no visual noise
 
 ---
 
 # Phase 3 — Content Injection
 
-**Goal:** replace placeholders with real content
+## Goal
 
-### Tasks
+Final content, no placeholders.
 
-* Write:
+## Required content
 
-  * headline
-  * subheadline
-  * service descriptions (1–2 lines each)
-  * testimonials (3–5)
+* headline + subheadline
+* services (1–2 lines each)
+* pricing labels
+* testimonials (3–5)
 
-* Verify:
+## Mandatory UI texts
 
-  * pricing exact
-  * extras + discount clarity
+### Availability
 
-### Output
+```
+Final availability confirmed after review.
+```
 
-* final copy, ready for dev
-* no lorem ipsum anywhere
+### Form success
+
+```
+Request received. We will confirm availability within 24h (9:00–17:00).
+```
+
+### Gallery
+
+```
+Access provided by event organizer.
+```
 
 ---
 
 # Phase 4 — Development (Cursor / Claude)
 
-**Goal:** fast, clean implementation
+## Stack
 
-### Stack (keep it simple)
-
-* static + minimal backend
-* no heavy frameworks unless needed
-
-### Build steps
-
-1. **Layout**
-
-   * pixel match Figma
-   * responsive first
-
-2. **Form**
-
-   * POST endpoint
-   * send email
-   * return immediate success message
-
-3. **Gallery**
-
-   * grid
-   * click → password screen → redirect
-
-4. **Language**
-
-   * route-based (`/sk`, `/en`, `/de`)
-   * simple i18n (JSON files)
-
-5. **Performance**
-
-   * compress images
-   * lazy load gallery
+* static frontend
+* minimal backend endpoint
 
 ---
 
-# Phase 5 — QA (you + Cursor)
+## Implementation
 
-**Goal:** break it before users do
+### 1. Layout
 
-### Checklist
+* pixel match Figma
+* responsive first
 
-* Mobile:
+---
 
-  * all sections readable
-  * CTA reachable fast
+### 2. Form
 
-* Form:
+#### Endpoint
 
-  * valid submit works
-  * invalid shows error
-  * spam attempt blocked (basic)
+* POST `/api/lead`
 
-* Links:
+#### Behavior
 
-  * gallery redirect works
-  * language switch works
+* validate fields
+* verify reCAPTCHA
+* send email
+* append to `.jsonl`
 
-* Speed:
+#### Log format
 
-  * loads <2s on mobile
+```json
+{"date":"","event_date":"","location":"","type":"","people":""}
+```
+
+#### Response
+
+* always return success (unless validation fails)
+
+---
+
+### 3. Gallery
+
+* grid view
+* click → password screen
+* password submit → redirect
+
+---
+
+### 4. Language
+
+* route-based (`/sk`, `/en`, `/de`)
+* JSON translation files
+* store selection in cookie
+
+---
+
+### 5. WhatsApp CTA
+
+* floating button (always visible)
+* link:
+
+  ```
+  https://wa.me/<number>?text=<encoded>
+  ```
+
+---
+
+### 6. Performance
+
+* image compression
+* lazy loading
+* <2s mobile load target
+
+---
+
+# Phase 5 — QA
+
+## Functional
+
+* form submit works
+* invalid input shows error
+* spam blocked
+
+## UX
+
+* CTA always reachable
+* pricing clear without thinking
+
+## Links
+
+* gallery flow works
+* language switch stable
+
+## Mobile
+
+* no broken layout
 
 ---
 
 # Phase 6 — Launch
 
-**Goal:** get real traffic fast
+## Tasks
 
-### Tasks
-
-* deploy
+* deploy to Webhouse
 * connect domain
 * enable analytics
 
-### Minimum SEO
+## SEO (minimum)
 
 * title
 * description
@@ -221,19 +296,17 @@
 
 # Phase 7 — Feedback Loop
 
-**Goal:** iterate based on reality
-
-### Watch
+## Track
 
 * CTA clicks vs form submits
-* drop-off before pricing
+* drop before pricing
 * mobile behavior
 
-### First improvements (likely)
+## First iteration targets
 
 * hero clarity
-* pricing readability
 * CTA placement
+* pricing readability
 
 ---
 
@@ -243,26 +316,31 @@
 Decisions → Wireframe → Design → Content → Dev → QA → Launch
 ```
 
-No skipping. No parallel chaos.
+---
+
+# Hard Constraints
+
+* no CMS
+* no booking system
+* no animations
+* no feature creep
 
 ---
 
-# Critical Constraints (enforce hard)
+# Success Criteria
 
-* No feature creep
-* No “nice to have”
-* No animations before v2
-* No booking system
-* No backend complexity
+* offer understood in <5 seconds
+* pricing clear immediately
+* form submission frictionless
 
 ---
 
-# Success Definition
+# One final correction
 
-* User understands offer in <5s
-* Pricing visible without thinking
-* Form submitted without friction
+Original plan said:
 
----
+> “spam protection (basic)”
 
-If something blocks → cut it, don’t solve it.
+This is now wrong.
+It is **explicitly defined (reCAPTCHA + honeypot)** and must stay that way.
+
