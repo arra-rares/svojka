@@ -1,0 +1,119 @@
+/* Date Picker Base Styles */
+
+.rdp {
+  margin: 0;
+  font-size: 14px;
+}
+
+.rdp-months {
+  display: flex;
+}
+
+.rdp-month {
+  width: 100%;
+}
+
+.rdp-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rdp-caption_label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111111;
+}
+
+.rdp-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rdp-nav_button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+  color: #111111;
+}
+
+.rdp-nav_button:hover:not([disabled]) {
+  background-color: #f3f3f5;
+}
+
+.rdp-nav_button[disabled] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.rdp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rdp-head_cell {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b6b6b;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.rdp-cell {
+  text-align: center;
+  padding: 0.125rem;
+}
+
+.rdp-day {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111111;
+  margin: 0 auto;
+}
+
+.rdp-day:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: #f3f3f5;
+}
+
+.rdp-day_selected {
+  background-color: #111111 !important;
+  color: white !important;
+}
+
+.rdp-day_selected:hover {
+  background-color: #000000 !important;
+}
+
+.rdp-day_today:not(.rdp-day_selected) {
+  font-weight: 600;
+  color: #111111;
+}
+
+.rdp-day_disabled {
+  color: #eaeaea;
+  cursor: not-allowed;
+}
+
+.rdp-day_outside {
+  color: #9e9e9e;
+}
+
+.rdp-day_hidden {
+  visibility: hidden;
+}

@@ -1,0 +1,362 @@
+import { useState, type FormEvent } from 'react';
+import { de, enUS, sk } from 'date-fns/locale';
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon, MessageCircle } from 'lucide-react';
+import { DayPicker } from 'react-day-picker';
+import '@/styles/datepicker.css';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { CTA } from '@/components/landing/CTA';
+import { Contact } from '@/components/landing/Contact';
+import { Footer } from '@/components/landing/Footer';
+import { Gallery } from '@/components/landing/Gallery';
+import { Hero } from '@/components/landing/Hero';
+import { HowItWorks } from '@/components/landing/HowItWorks';
+import { Pricing } from '@/components/landing/Pricing';
+import { Services } from '@/components/landing/Services';
+import { SocialProof } from '@/components/landing/SocialProof';
+import { galleryBaseUrlPattern, telHref, whatsappHref } from '@/content/contactStatic';
+import { useLocaleContext, useSiteContent } from '@/context/LocaleContext';
+
+const dateFnsLocaleByLocale = {
+  en: enUS,
+  sk,
+  de,
+} as const;
+
+type LandingProps = {
+  onNavigateToGallery: () => void;
+};
+
+export function Landing({ onNavigateToGallery }: LandingProps) {
+  const { locale } = useLocaleContext();
+  const {
+    headerContent,
+    bookingFormContent,
+    floatingContactContent,
+    formValidationMessages,
+    galleryPasswordModalContent,
+    successToastContent,
+  } = useSiteContent();
+  const dateLocale = dateFnsLocaleByLocale[locale];
+
+  const [showForm, setShowForm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  const validateEmail = (value: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone) return true;
+    const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setEmailError('');
+    setPhoneError('');
+
+    let hasErrors = false;
+
+    if (!email || !validateEmail(email)) {
+      setEmailError(formValidationMessages.emailInvalid);
+      hasErrors = true;
+    }
+
+    if (phoneNumber && !validatePhone(phoneNumber)) {
+      setPhoneError(formValidationMessages.phoneInvalid);
+      hasErrors = true;
+    }
+
+    if (!selectedDate) {
+      hasErrors = true;
+    }
+
+    if (hasErrors) return;
+
+    setShowForm(false);
+    setShowSuccess(true);
+    window.setTimeout(() => setShowSuccess(false), 5000);
+    setSelectedDate(undefined);
+    setEmail('');
+    setPhoneNumber('');
+  };
+
+  const handleEventClick = (eventId: number) => {
+    setSelectedEvent(eventId);
+    setShowPasswordModal(true);
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#EAEAEA]">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
+          <div className="text-[22px] font-semibold text-[#111111]">{headerContent.brand}</div>
+          <LanguageSwitcher />
+        </div>
+      </header>
+
+      <Hero onOpenBookingForm={() => setShowForm(true)} />
+      <SocialProof />
+      <Services />
+      <Pricing />
+      <HowItWorks />
+      <Gallery onEventClick={handleEventClick} onViewAll={onNavigateToGallery} />
+      <CTA onOpenBookingForm={() => setShowForm(true)} />
+      <Contact />
+      <Footer />
+
+      <a
+        href={whatsappHref}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#20BA5A] transition-colors"
+        aria-label={floatingContactContent.whatsappAriaLabel}
+      >
+        <MessageCircle className="w-6 h-6" />
+      </a>
+
+      {showForm ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-[500px] w-full p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-[22px] font-semibold text-[#111111] mb-6">{bookingFormContent.title}</h3>
+
+            <form onSubmit={handleFormSubmit} className="space-y-5">
+              <div>
+                <label className="block text-[14px] text-[#111111] mb-2" htmlFor="booking-event-date">
+                  {bookingFormContent.eventDateLabel}
+                </label>
+                <div className="relative">
+                  <button
+                    id="booking-event-date"
+                    type="button"
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-[#111111] text-left flex items-center justify-between ${
+                      !selectedDate ? 'text-[#9E9E9E]' : 'text-[#111111]'
+                    } ${!selectedDate && emailError ? 'border-red-500' : 'border-[#EAEAEA]'}`}
+                  >
+                    <span>
+                      {selectedDate
+                        ? format(selectedDate, 'PPP', { locale: dateLocale })
+                        : bookingFormContent.eventDatePlaceholder}
+                    </span>
+                    <CalendarIcon className="w-5 h-5 text-[#6B6B6B]" />
+                  </button>
+
+                  {showDatePicker ? (
+                    <>
+                      <button
+                        type="button"
+                        className="fixed inset-0 z-[9] cursor-default bg-transparent border-0 p-0"
+                        aria-label={bookingFormContent.closeCalendarAriaLabel}
+                        onClick={() => setShowDatePicker(false)}
+                      />
+                      <div className="absolute top-full left-0 mt-2 bg-white border border-[#EAEAEA] rounded-lg shadow-lg z-10 p-3">
+                        <DayPicker
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => {
+                            setSelectedDate(date);
+                            setShowDatePicker(false);
+                          }}
+                          disabled={{ before: new Date() }}
+                          locale={dateLocale}
+                        />
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-[#111111] mb-2" htmlFor="booking-email">
+                  {bookingFormContent.emailLabel}
+                </label>
+                <input
+                  id="booking-email"
+                  type="email"
+                  value={email}
+                  onChange={(ev) => {
+                    setEmail(ev.target.value);
+                    setEmailError('');
+                  }}
+                  placeholder={bookingFormContent.emailPlaceholder}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-[#111111] ${
+                    emailError ? 'border-red-500' : 'border-[#EAEAEA]'
+                  }`}
+                />
+                {emailError ? <p className="text-[12px] text-red-500 mt-1">{emailError}</p> : null}
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-[#111111] mb-2" htmlFor="booking-phone">
+                  {bookingFormContent.phoneLabel}
+                </label>
+                <input
+                  id="booking-phone"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(ev) => {
+                    setPhoneNumber(ev.target.value);
+                    setPhoneError('');
+                  }}
+                  placeholder={bookingFormContent.phonePlaceholder}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-[#111111] ${
+                    phoneError ? 'border-red-500' : 'border-[#EAEAEA]'
+                  }`}
+                />
+                <p className="text-[12px] text-[#6B6B6B] mt-1">{bookingFormContent.phoneHint}</p>
+                {phoneError ? <p className="text-[12px] text-red-500 mt-1">{phoneError}</p> : null}
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-[#111111] mb-2" htmlFor="booking-location">
+                  {bookingFormContent.locationLabel}
+                </label>
+                <input
+                  id="booking-location"
+                  type="text"
+                  placeholder={bookingFormContent.locationPlaceholder}
+                  className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-[#111111] mb-2" htmlFor="booking-event-type">
+                  {bookingFormContent.eventTypeLabel}{' '}
+                  <span className="text-[#9E9E9E]">{bookingFormContent.eventTypeOptional}</span>
+                </label>
+                <select
+                  id="booking-event-type"
+                  className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111]"
+                  defaultValue=""
+                >
+                  {bookingFormContent.eventTypeOptions.map((opt) => (
+                    <option key={opt.value || 'empty'} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-[#111111] mb-2" htmlFor="booking-guests">
+                  {bookingFormContent.guestCountLabel}{' '}
+                  <span className="text-[#9E9E9E]">{bookingFormContent.guestCountOptional}</span>
+                </label>
+                <input
+                  id="booking-guests"
+                  type="number"
+                  placeholder={bookingFormContent.guestCountPlaceholder}
+                  className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111]"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-[#EAEAEA]">
+                <p className="text-[14px] text-[#6B6B6B] mb-3">{bookingFormContent.instantResponseLead}</p>
+                <div className="flex gap-3">
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 px-4 py-2 border border-[#25D366] text-[#25D366] rounded-lg hover:bg-[#25D366] hover:text-white transition-colors text-center text-[14px] font-medium"
+                  >
+                    {bookingFormContent.whatsappButton}
+                  </a>
+                  <a
+                    href={telHref}
+                    className="flex-1 px-4 py-2 border border-[#111111] text-[#111111] rounded-lg hover:bg-[#111111] hover:text-white transition-colors text-center text-[14px] font-medium"
+                  >
+                    {bookingFormContent.callButton}
+                  </a>
+                </div>
+              </div>
+
+              <p className="text-[12px] text-[#6B6B6B] text-center">{bookingFormContent.trustLine}</p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEmailError('');
+                    setPhoneError('');
+                  }}
+                  className="flex-1 px-6 py-3 border border-[#EAEAEA] text-[#111111] rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  {bookingFormContent.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-[#111111] text-white rounded-lg hover:bg-black transition-colors"
+                >
+                  {bookingFormContent.submit}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {showSuccess ? (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#111111] text-white px-6 py-4 rounded-lg shadow-lg max-w-[500px] w-full mx-4">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              {successToastContent.checkmark}
+            </div>
+            <div className="text-[14px]">
+              <strong>{successToastContent.lineBold}</strong> {successToastContent.lineRest}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showPasswordModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-[400px] w-full p-6 md:p-8">
+            <h3 className="text-[22px] font-semibold text-[#111111] mb-4">
+              {galleryPasswordModalContent.title}
+            </h3>
+            <p className="text-[14px] text-[#6B6B6B] mb-6">{galleryPasswordModalContent.description}</p>
+
+            <input
+              type="password"
+              placeholder={galleryPasswordModalContent.passwordPlaceholder}
+              className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111] mb-6"
+            />
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                className="flex-1 px-6 py-3 border border-[#EAEAEA] text-[#111111] rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {galleryPasswordModalContent.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  if (selectedEvent != null) {
+                    window.open(`${galleryBaseUrlPattern}${selectedEvent}`, '_blank');
+                  }
+                }}
+                className="flex-1 px-6 py-3 bg-[#111111] text-white rounded-lg hover:bg-black transition-colors"
+              >
+                {galleryPasswordModalContent.enter}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
