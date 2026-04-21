@@ -3,7 +3,8 @@
 ## 1. Business Overview
 
 * Brand: ARRA Production
-* Location: Slovakia + Austria
+* Location: Slovakia
+* Service area note: events outside Slovakia are possible; final pricing may vary due to logistics
 * Market: event services (weddings, corporate, parties, stužková)
 * Positioning: premium experience, but accessible
 * Experience: 100+ events
@@ -33,29 +34,29 @@
 
 ---
 
-## 3. Pricing (Fixed)
+## 3. Pricing (Slovakia Baseline)
 
 ### Fotobox
 
-* 2h → 250€
-* 3h → 299€
-* 4h → 350€
+* 2h → from 250€
+* 3h → from 299€
+* 4h → from 350€
 
 ### Video 360
 
-* 3h → 299€
+* 3h → from 299€
 
 ### Extras
 
-* Pyrotechnics → 120€
-* Low fog → 120€
-* Guestbook phone → 120€
+* Pyrotechnics → from 120€
+* Low fog → from 120€
+* Guestbook phone → from 120€
 
 ### Transport
 
 * 0.35€/km
-* from Bratislava (Slovakia)
-* from Vienna (Austria)
+* from Bratislava
+* Prices apply within Slovakia. Final pricing may vary for events outside Slovakia due to logistics.
 
 ---
 
@@ -102,6 +103,9 @@
 ### Website Behavior
 
 * site shows one cover image per event
+* collaborator events may include an optional attribution line:
+
+  * “Event organized in cooperation with [Partner Name]”
 * click → password required (provided to client)
 * after password → redirect to external gallery (fotoshare)
 * users can view and download
@@ -175,7 +179,7 @@ Channels:
 ## 13. Legal
 
 * Company: ARRA Production
-* Address: Slovakia + Austria (details pending)
+* Address: Slovakia (details pending)
 * Business identifiers (IČO, DIČ, etc.) → pending
 * GDPR / privacy policy required
 

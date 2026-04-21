@@ -135,8 +135,10 @@ Goal: remove friction
 
 Notes:
 
-* fixed prices
-* transport rule (+0.35€/km)
+* Slovakia baseline pricing (visible on website)
+* package labels use “from” pricing
+* transport rule (+0.35€/km from Bratislava)
+* Prices apply within Slovakia. Final pricing may vary for events outside Slovakia due to logistics.
 
 Optional:
 
@@ -160,6 +162,9 @@ Goal: reduce uncertainty
 Goal: show real results
 
 * grid of events (cover image only)
+* optional small attribution for collaborator events:
+
+  * “Event organized in cooperation with [Partner Name]”
 * click → password screen
 * after password → external link (fotoshare)
 
@@ -185,7 +190,7 @@ Goal: capture intent
 
 ### 9. Footer
 
-* company info (SK + AT)
+* company info (Slovakia)
 * legal
 * languages
 

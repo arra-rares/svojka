@@ -89,6 +89,9 @@ export function Pricing() {
         <div className="mt-6 text-center text-[14px] text-[#6B6B6B]">
           {pricingContent.transportationNote}
         </div>
+        <div className="mt-2 text-center text-[12px] text-[#6B6B6B]">
+          {pricingContent.pricingFootnote}
+        </div>
       </div>
     </section>
   );

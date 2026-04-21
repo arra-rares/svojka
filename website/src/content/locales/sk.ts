@@ -206,15 +206,15 @@ export const sk: SiteContent = {
       title: 'Fotokútik',
       icon: 'camera' as const,
       tiers: [
-        { durationLabel: '2 hodiny', price: '250€', highlighted: false },
-        { durationLabel: '3 hodiny', price: '299€', highlighted: true, badge: 'Najobľúbenejšie' },
-        { durationLabel: '4 hodiny', price: '350€', highlighted: false },
+        { durationLabel: '2 hodiny', price: 'od 250€', highlighted: false },
+        { durationLabel: '3 hodiny', price: 'od 299€', highlighted: true, badge: 'Najobľúbenejšie' },
+        { durationLabel: '4 hodiny', price: 'od 350€', highlighted: false },
       ],
     },
     video360: {
       title: 'Video 360',
       icon: 'video' as const,
-      tier: { durationLabel: '3 hodiny', price: '299€' },
+      tier: { durationLabel: '3 hodiny', price: 'od 299€' },
     },
     additional: {
       title: 'Doplnkové služby',
@@ -223,21 +223,23 @@ export const sk: SiteContent = {
         {
           name: 'Pyrotechnika',
           note: '60€ s Fotokútikom / 360',
-          price: '120€',
+          price: 'od 120€',
         },
         {
           name: 'Nízka hmla',
           note: '60€ s Fotokútikom / 360',
-          price: '120€',
+          price: 'od 120€',
         },
         {
           name: 'Telefón do knihy hostí',
           note: '60€ s Fotokútikom / 360',
-          price: '120€',
+          price: 'od 120€',
         },
       ],
     },
-    transportationNote: '+ doprava 0,35 €/km (z Bratislavy / Viedne)',
+    transportationNote: '+ doprava 0,35 €/km z Bratislavy',
+    pricingFootnote:
+      'Ceny platia v rámci Slovenska. Konečná cena pri akciách mimo Slovenska sa môže líšiť kvôli logistike.',
   },
 
   howItWorksContent: {
@@ -304,7 +306,6 @@ export const sk: SiteContent = {
       thumbnailUrls: [...galleryMockThumbnailUrls],
       locations: [
         'Bratislava',
-        'Viedeň',
         'Praha',
         'Budapešť',
         'Košice',
@@ -328,13 +329,15 @@ export const sk: SiteContent = {
       ],
     },
     eventCardAltJoiner: ' – ',
+    collaboratorAttributionTemplate: 'Event organized in cooperation with [Partner Name]',
+    collaboratorPartnerNames: ['Partner Name'],
   },
 
   footerContent: {
     brandColumn: {
       title: 'ARRA Production',
       description:
-        'Prémiové služby pre nezabudnuteľné zážitky. Slovensko a Rakúsko.',
+        'Prémiové služby pre nezabudnuteľné zážitky. Slovensko.',
     },
     servicesColumn: {
       title: 'Služby',

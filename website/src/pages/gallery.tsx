@@ -10,6 +10,7 @@ type Event = {
   location: string;
   year: number;
   imageSrc: string;
+  collaboratorAttribution?: string;
 };
 
 type GalleryPageProps = {
@@ -38,23 +39,33 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
 
     for (let i = 0; i < eventCount2026; i++) {
       const month = months[Math.floor(Math.random() * months.length)];
+      const partnerName = galleryPageContent.mock.collaboratorPartnerNames[i % galleryPageContent.mock.collaboratorPartnerNames.length];
+      const hasCollaborator = i % 9 === 0;
       events.push({
         id: id++,
         date: `${month} 2026`,
         location: locations[i % locations.length],
         year: 2026,
         imageSrc: thumbnailUrls[i % thumbnailUrls.length],
+        collaboratorAttribution: hasCollaborator
+          ? galleryPageContent.collaboratorAttributionTemplate.replace('[Partner Name]', partnerName)
+          : undefined,
       });
     }
 
     for (let i = 0; i < eventCount2025; i++) {
       const month = months[Math.floor(Math.random() * months.length)];
+      const partnerName = galleryPageContent.mock.collaboratorPartnerNames[i % galleryPageContent.mock.collaboratorPartnerNames.length];
+      const hasCollaborator = i % 11 === 0;
       events.push({
         id: id++,
         date: `${month} 2025`,
         location: locations[i % locations.length],
         year: 2025,
         imageSrc: thumbnailUrls[i % thumbnailUrls.length],
+        collaboratorAttribution: hasCollaborator
+          ? galleryPageContent.collaboratorAttributionTemplate.replace('[Partner Name]', partnerName)
+          : undefined,
       });
     }
 
@@ -160,6 +171,11 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
                         </div>
                         <div className="text-[14px] text-[#111111] font-medium mb-1">{event.date}</div>
                         <div className="text-[12px] text-[#6B6B6B]">{event.location}</div>
+                        {event.collaboratorAttribution ? (
+                          <div className="text-[11px] text-[#9E9E9E] mt-1">
+                            {event.collaboratorAttribution}
+                          </div>
+                        ) : null}
                       </button>
                     ))}
                   </div>
@@ -247,6 +263,9 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
               {selectedEvent.location} {galleryPasswordModalContent.eventDetailConnector}{' '}
               {selectedEvent.date}
             </p>
+            {selectedEvent.collaboratorAttribution ? (
+              <p className="text-[12px] text-[#9E9E9E] mb-2">{selectedEvent.collaboratorAttribution}</p>
+            ) : null}
             <p className="text-[14px] text-[#6B6B6B] mb-6">{galleryPasswordModalContent.description}</p>
 
             <input

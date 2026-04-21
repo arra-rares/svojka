@@ -205,15 +205,15 @@ export const en = {
       title: 'Photo Booth',
       icon: 'camera' as const,
       tiers: [
-        { durationLabel: '2 hours', price: '250€', highlighted: false },
-        { durationLabel: '3 hours', price: '299€', highlighted: true, badge: 'Most Popular' },
-        { durationLabel: '4 hours', price: '350€', highlighted: false },
+        { durationLabel: '2 hours', price: 'from 250€', highlighted: false },
+        { durationLabel: '3 hours', price: 'from 299€', highlighted: true, badge: 'Most Popular' },
+        { durationLabel: '4 hours', price: 'from 350€', highlighted: false },
       ],
     },
     video360: {
       title: 'Video 360',
       icon: 'video' as const,
-      tier: { durationLabel: '3 hours', price: '299€' },
+      tier: { durationLabel: '3 hours', price: 'from 299€' },
     },
     additional: {
       title: 'Additional Services',
@@ -222,21 +222,23 @@ export const en = {
         {
           name: 'Pyrotechnics',
           note: '60€ with Photo Booth/360',
-          price: '120€',
+          price: 'from 120€',
         },
         {
           name: 'Low Fog',
           note: '60€ with Photo Booth/360',
-          price: '120€',
+          price: 'from 120€',
         },
         {
           name: 'Guestbook Phone',
           note: '60€ with Photo Booth/360',
-          price: '120€',
+          price: 'from 120€',
         },
       ],
     },
-    transportationNote: '+ transportation 0.35€/km (from Bratislava/Vienna)',
+    transportationNote: '+ transportation 0.35€/km from Bratislava',
+    pricingFootnote:
+      'Prices apply within Slovakia. Final pricing may vary for events outside Slovakia due to logistics.',
   },
 
   howItWorksContent: {
@@ -303,7 +305,6 @@ export const en = {
       thumbnailUrls: [...galleryMockThumbnailUrls],
       locations: [
         'Bratislava',
-        'Vienna',
         'Prague',
         'Budapest',
         'Košice',
@@ -327,13 +328,15 @@ export const en = {
       ],
     },
     eventCardAltJoiner: ' - ',
+    collaboratorAttributionTemplate: 'Event organized in cooperation with [Partner Name]',
+    collaboratorPartnerNames: ['Partner Name'],
   },
 
   footerContent: {
     brandColumn: {
       title: 'ARRA Production',
       description:
-        'Premium event services for unforgettable experiences. Slovakia & Austria.',
+        'Premium event services for unforgettable experiences. Slovakia.',
     },
     servicesColumn: {
       title: 'Services',

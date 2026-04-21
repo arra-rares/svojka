@@ -29,6 +29,8 @@
 
 ## Pricing
 
+* Slovakia baseline pricing on website
+* package labels use “from” pricing
 * inline discounts:
 
   ```
@@ -37,13 +39,18 @@
 * highlight:
 
   * **3h = “Most popular”**
+* pricing footnote (mandatory):
+
+  ```
+  Prices apply within Slovakia. Final pricing may vary for events outside Slovakia due to logistics.
+  ```
 
 ## Transport
 
 * show rule only:
 
   ```
-  +0.35€/km from Bratislava / Vienna
+  +0.35€/km from Bratislava
   ```
 
 ## Gallery
@@ -52,6 +59,11 @@
 * message:
 
   > Access provided by event organizer
+* optional collaborator attribution support on event pages:
+
+  ```
+  Event organized in cooperation with [Partner Name]
+  ```
 * redirect to fotoshare
 
 ## Language
@@ -174,6 +186,18 @@ Request received. We will confirm availability within 24h (9:00–17:00).
 Access provided by event organizer.
 ```
 
+### Pricing footnote
+
+```
+Prices apply within Slovakia. Final pricing may vary for events outside Slovakia due to logistics.
+```
+
+### Optional collaborator attribution
+
+```
+Event organized in cooperation with [Partner Name]
+```
+
 ---
 
 # Phase 4 — Development (Cursor / Claude)
@@ -224,6 +248,7 @@ Access provided by event organizer.
 * grid view
 * click → password screen
 * password submit → redirect
+* optional per-event collaborator attribution when relevant
 
 ---
 
