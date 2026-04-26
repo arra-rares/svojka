@@ -1,0 +1,10 @@
+{
+  "name": "svojka-workspace",
+  "private": true,
+  "scripts": {
+    "install:website": "npm --prefix website install",
+    "dev": "npm --prefix website run dev",
+    "build": "npm --prefix website run build",
+    "clean-install": "npm --prefix website run clean-install"
+  }
+}
