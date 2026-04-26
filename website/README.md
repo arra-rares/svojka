@@ -2,15 +2,6 @@
 
 ## Development
 
-From repository root:
-
-```bash
-npm run install:website
-npm run dev
-```
-
-Or from `website/` directly:
-
 ```bash
 npm install
 npm run dev
