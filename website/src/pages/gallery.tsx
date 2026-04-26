@@ -39,7 +39,10 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
 
     for (let i = 0; i < eventCount2026; i++) {
       const month = months[Math.floor(Math.random() * months.length)];
-      const partnerName = galleryPageContent.mock.collaboratorPartnerNames[i % galleryPageContent.mock.collaboratorPartnerNames.length];
+      const partnerName =
+        galleryPageContent.collaboratorPartnerNames[
+          i % galleryPageContent.collaboratorPartnerNames.length
+        ];
       const hasCollaborator = i % 9 === 0;
       events.push({
         id: id++,
@@ -55,7 +58,10 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
 
     for (let i = 0; i < eventCount2025; i++) {
       const month = months[Math.floor(Math.random() * months.length)];
-      const partnerName = galleryPageContent.mock.collaboratorPartnerNames[i % galleryPageContent.mock.collaboratorPartnerNames.length];
+      const partnerName =
+        galleryPageContent.collaboratorPartnerNames[
+          i % galleryPageContent.collaboratorPartnerNames.length
+        ];
       const hasCollaborator = i % 11 === 0;
       events.push({
         id: id++,
