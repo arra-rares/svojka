@@ -59,7 +59,7 @@ export const sk: SiteContent = {
 
   galleryPasswordModalContent: {
     title: 'Prístup do galérie',
-    description: 'Zadajte heslo, ktoré ste dostali po akcii',
+    description: 'Prístup poskytuje organizátor podujatia.',
     passwordPlaceholder: 'Heslo do galérie',
     cancel: 'Zrušiť',
     enter: 'Vstúpiť',

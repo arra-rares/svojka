@@ -58,7 +58,7 @@ export const en = {
 
   galleryPasswordModalContent: {
     title: 'Gallery Access',
-    description: 'Enter the password you received after the event',
+    description: 'Access provided by event organizer.',
     passwordPlaceholder: 'Gallery password',
     cancel: 'Cancel',
     enter: 'Enter',

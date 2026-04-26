@@ -59,7 +59,7 @@ export const de: SiteContent = {
 
   galleryPasswordModalContent: {
     title: 'Galerie-Zugang',
-    description: 'Geben Sie das Passwort ein, das Sie nach der Veranstaltung erhalten haben',
+    description: 'Zugang wird vom Veranstalter bereitgestellt.',
     passwordPlaceholder: 'Galerie-Passwort',
     cancel: 'Abbrechen',
     enter: 'Öffnen',

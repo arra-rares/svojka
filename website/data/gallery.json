@@ -1,0 +1,14 @@
+{
+  "events": [
+    {
+      "id": "wedding-bratislava-2026-05-10",
+      "name": "Wedding Bratislava",
+      "type": "wedding",
+      "date": "2026-05-10",
+      "coverImage": "/images/gallery/placeholder-event.webp",
+      "password": "client-password",
+      "fotoshareUrl": "https://fotoshare.co/e/example-id",
+      "visible": true
+    }
+  ]
+}

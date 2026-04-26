@@ -51,12 +51,14 @@ export function Pricing() {
             <BlockIcon icon={pricingContent.video360.icon} />
             {pricingContent.video360.title}
           </h3>
-          <div className="border border-[#EAEAEA] rounded-lg p-4 inline-block">
-            <div className="text-[14px] text-[#6B6B6B] mb-2">
-              {pricingContent.video360.tier.durationLabel}
-            </div>
-            <div className="text-[32px] font-bold text-[#111111]">
-              {pricingContent.video360.tier.price}
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="border border-[#EAEAEA] rounded-lg p-4">
+              <div className="text-[14px] text-[#6B6B6B] mb-2">
+                {pricingContent.video360.tier.durationLabel}
+              </div>
+              <div className="text-[32px] font-bold text-[#111111]">
+                {pricingContent.video360.tier.price}
+              </div>
             </div>
           </div>
         </div>

@@ -1,17 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { galleryBaseUrlPattern } from '@/content/contactStatic';
 import { useSiteContent } from '@/context/LocaleContext';
+import type { GalleryEventPublic } from '@/types/gallery';
 
-type Event = {
-  id: number;
-  date: string;
-  location: string;
-  year: number;
-  imageSrc: string;
-  collaboratorAttribution?: string;
-};
+type Event = GalleryEventPublic;
 
 type GalleryPageProps = {
   onBackToHome: () => void;
@@ -21,6 +14,10 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
   const { galleryPageContent, headerContent, galleryPasswordModalContent } = useSiteContent();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [enteredPassword, setEnteredPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [eventsLoadError, setEventsLoadError] = useState('');
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -28,62 +25,50 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
+    setEnteredPassword('');
+    setPasswordError('');
     setShowPasswordModal(true);
   };
 
-  const allEvents: Event[] = useMemo(() => {
-    const { thumbnailUrls, locations, months, eventCount2026, eventCount2025 } =
-      galleryPageContent.mock;
-    const events: Event[] = [];
-    let id = 1;
-
-    for (let i = 0; i < eventCount2026; i++) {
-      const month = months[Math.floor(Math.random() * months.length)];
-      const partnerName =
-        galleryPageContent.collaboratorPartnerNames[
-          i % galleryPageContent.collaboratorPartnerNames.length
-        ];
-      const hasCollaborator = i % 9 === 0;
-      events.push({
-        id: id++,
-        date: `${month} 2026`,
-        location: locations[i % locations.length],
-        year: 2026,
-        imageSrc: thumbnailUrls[i % thumbnailUrls.length],
-        collaboratorAttribution: hasCollaborator
-          ? galleryPageContent.collaboratorAttributionTemplate.replace('[Partner Name]', partnerName)
-          : undefined,
-      });
+  useEffect(() => {
+    async function loadEvents() {
+      setEventsLoadError('');
+      const response = await fetch('/api/gallery/events');
+      if (!response.ok) {
+        setEventsLoadError('Unable to load gallery events right now.');
+        return;
+      }
+      const data = (await response.json()) as { events: Event[] };
+      setAllEvents(data.events);
     }
 
-    for (let i = 0; i < eventCount2025; i++) {
-      const month = months[Math.floor(Math.random() * months.length)];
-      const partnerName =
-        galleryPageContent.collaboratorPartnerNames[
-          i % galleryPageContent.collaboratorPartnerNames.length
-        ];
-      const hasCollaborator = i % 11 === 0;
-      events.push({
-        id: id++,
-        date: `${month} 2025`,
-        location: locations[i % locations.length],
-        year: 2025,
-        imageSrc: thumbnailUrls[i % thumbnailUrls.length],
-        collaboratorAttribution: hasCollaborator
-          ? galleryPageContent.collaboratorAttributionTemplate.replace('[Partner Name]', partnerName)
-          : undefined,
-      });
-    }
+    void loadEvents();
+  }, []);
 
-    return events.sort((a, b) => b.year - a.year);
-  }, [galleryPageContent.mock]);
+  async function unlockEvent() {
+    if (!selectedEvent) return;
+    setPasswordError('');
+    const response = await fetch('/api/gallery/access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: selectedEvent.id,
+        password: enteredPassword,
+      }),
+    });
+    if (!response.ok) {
+      setPasswordError('Incorrect password.');
+      return;
+    }
+    const data = (await response.json()) as { fotoshareUrl: string };
+    window.location.assign(data.fotoshareUrl);
+  }
 
   const filteredEvents = useMemo(() => {
     if (!searchQuery) return allEvents;
     const query = searchQuery.toLowerCase();
-    return allEvents.filter(
-      (event) =>
-        event.date.toLowerCase().includes(query) || event.location.toLowerCase().includes(query),
+    return allEvents.filter((event) =>
+      [event.name, event.type, event.date].some((field) => field.toLowerCase().includes(query)),
     );
   }, [allEvents, searchQuery]);
 
@@ -93,17 +78,18 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
 
   const paginatedEventsByYear = useMemo(() => {
     const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
-    const grouped: Record<number, Event[]> = {};
+    const grouped: Record<string, Event[]> = {};
     paginatedEvents.forEach((event) => {
-      if (!grouped[event.year]) {
-        grouped[event.year] = [];
+      const year = event.date.slice(0, 4);
+      if (!grouped[year]) {
+        grouped[year] = [];
       }
-      grouped[event.year].push(event);
+      grouped[year].push(event);
     });
     return grouped;
   }, [filteredEvents, startIndex, endIndex]);
 
-  const paginatedYears = Object.keys(paginatedEventsByYear).map(Number).sort((a, b) => b - a);
+  const paginatedYears = Object.keys(paginatedEventsByYear).sort((a, b) => b.localeCompare(a));
 
   return (
     <div className="min-h-screen bg-white">
@@ -149,7 +135,11 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
             </div>
           </div>
 
-          {filteredEvents.length === 0 ? (
+          {eventsLoadError ? (
+            <div className="text-center py-16">
+              <p className="text-[18px] text-[#111111] mb-2">{eventsLoadError}</p>
+            </div>
+          ) : filteredEvents.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-[18px] text-[#111111] mb-2">{galleryPageContent.emptyTitle}</p>
               <p className="text-[14px] text-[#6B6B6B]">{galleryPageContent.emptySubtitle}</p>
@@ -170,18 +160,13 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
                       >
                         <div className="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-3">
                           <img
-                            src={event.imageSrc}
-                            alt={`${event.location}${galleryPageContent.eventCardAltJoiner}${event.date}`}
+                            src={event.coverImage}
+                            alt={`${event.name}${galleryPageContent.eventCardAltJoiner}${event.date}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         </div>
-                        <div className="text-[14px] text-[#111111] font-medium mb-1">{event.date}</div>
-                        <div className="text-[12px] text-[#6B6B6B]">{event.location}</div>
-                        {event.collaboratorAttribution ? (
-                          <div className="text-[11px] text-[#9E9E9E] mt-1">
-                            {event.collaboratorAttribution}
-                          </div>
-                        ) : null}
+                        <div className="text-[14px] text-[#111111] font-medium mb-1">{event.name}</div>
+                        <div className="text-[12px] text-[#6B6B6B]">{event.date}</div>
                       </button>
                     ))}
                   </div>
@@ -266,19 +251,19 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
               {galleryPasswordModalContent.title}
             </h3>
             <p className="text-[14px] text-[#6B6B6B] mb-2">
-              {selectedEvent.location} {galleryPasswordModalContent.eventDetailConnector}{' '}
+              {selectedEvent.name} {galleryPasswordModalContent.eventDetailConnector}{' '}
               {selectedEvent.date}
             </p>
-            {selectedEvent.collaboratorAttribution ? (
-              <p className="text-[12px] text-[#9E9E9E] mb-2">{selectedEvent.collaboratorAttribution}</p>
-            ) : null}
             <p className="text-[14px] text-[#6B6B6B] mb-6">{galleryPasswordModalContent.description}</p>
 
             <input
               type="password"
+              value={enteredPassword}
+              onChange={(e) => setEnteredPassword(e.target.value)}
               placeholder={galleryPasswordModalContent.passwordPlaceholder}
               className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111] mb-6"
             />
+            {passwordError ? <p className="text-[12px] text-red-500 mb-4">{passwordError}</p> : null}
 
             <div className="flex gap-3">
               <button
@@ -290,10 +275,7 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  window.open(`${galleryBaseUrlPattern}${selectedEvent.id}`, '_blank');
-                }}
+                onClick={() => void unlockEvent()}
                 className="flex-1 px-6 py-3 bg-[#111111] text-white rounded-lg hover:bg-black transition-colors"
               >
                 {galleryPasswordModalContent.enter}

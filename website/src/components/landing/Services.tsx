@@ -20,7 +20,8 @@ export function Services() {
   const [currentBackdropIndex, setCurrentBackdropIndex] = useState(0);
 
   const photobox = servicesContent.services.find((s) => s.id === 'photobox');
-  const backdropUrls = photobox && 'backdrops' in photobox ? photobox.backdrops : [];
+  const backdropUrls: readonly string[] =
+    photobox && 'backdrops' in photobox ? (photobox.backdrops ?? []) : [];
 
   return (
     <section className="py-10 md:py-16 px-4">
