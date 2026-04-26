@@ -14,7 +14,7 @@ import { HowItWorks } from '@/components/landing/HowItWorks';
 import { Pricing } from '@/components/landing/Pricing';
 import { Services } from '@/components/landing/Services';
 import { SocialProof } from '@/components/landing/SocialProof';
-import { galleryBaseUrlPattern, telHref, whatsappHref } from '@/content/contactStatic';
+import { telHref, whatsappHref } from '@/content/contactStatic';
 import { useLocaleContext, useSiteContent } from '@/context/LocaleContext';
 
 const dateFnsLocaleByLocale = {
@@ -34,15 +34,12 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
     bookingFormContent,
     floatingContactContent,
     formValidationMessages,
-    galleryPasswordModalContent,
     successToastContent,
   } = useSiteContent();
   const dateLocale = dateFnsLocaleByLocale[locale];
 
   const [showForm, setShowForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [email, setEmail] = useState('');
@@ -92,11 +89,6 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
     setPhoneNumber('');
   };
 
-  const handleEventClick = (eventId: number) => {
-    setSelectedEvent(eventId);
-    setShowPasswordModal(true);
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#EAEAEA]">
@@ -111,7 +103,7 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
       <Services />
       <Pricing />
       <HowItWorks />
-      <Gallery onEventClick={handleEventClick} onViewAll={onNavigateToGallery} />
+      <Gallery onViewAll={onNavigateToGallery} />
       <CTA onOpenBookingForm={() => setShowForm(true)} />
       <Contact />
       <Footer />
@@ -319,44 +311,6 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
         </div>
       ) : null}
 
-      {showPasswordModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl max-w-[400px] w-full p-6 md:p-8">
-            <h3 className="text-[22px] font-semibold text-[#111111] mb-4">
-              {galleryPasswordModalContent.title}
-            </h3>
-            <p className="text-[14px] text-[#6B6B6B] mb-6">{galleryPasswordModalContent.description}</p>
-
-            <input
-              type="password"
-              placeholder={galleryPasswordModalContent.passwordPlaceholder}
-              className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111] mb-6"
-            />
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowPasswordModal(false)}
-                className="flex-1 px-6 py-3 border border-[#EAEAEA] text-[#111111] rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {galleryPasswordModalContent.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  if (selectedEvent != null) {
-                    window.open(`${galleryBaseUrlPattern}${selectedEvent}`, '_blank');
-                  }
-                }}
-                className="flex-1 px-6 py-3 bg-[#111111] text-white rounded-lg hover:bg-black transition-colors"
-              >
-                {galleryPasswordModalContent.enter}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

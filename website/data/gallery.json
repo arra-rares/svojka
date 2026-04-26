@@ -9,6 +9,16 @@
       "password": "client-password",
       "fotoshareUrl": "https://fotoshare.co/e/example-id",
       "visible": true
+    },
+    {
+      "id": "rares-2026-04-14",
+      "name": "rares",
+      "type": "wedding",
+      "date": "2026-04-14",
+      "coverImage": "/images/gallery/rares-2026-04-14.jpg",
+      "password": "123456",
+      "fotoshareUrl": "https://fotoshare.co/e/8737242",
+      "visible": true
     }
   ]
 }

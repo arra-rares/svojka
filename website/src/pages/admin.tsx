@@ -108,7 +108,8 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
       body: JSON.stringify({ password: loginPassword }),
     });
     if (!response.ok) {
-      setLoginError('Invalid password.');
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      setLoginError(data.error ?? 'Invalid password.');
       return;
     }
     setAuthenticated(true);

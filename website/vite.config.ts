@@ -2,7 +2,7 @@
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -145,8 +145,8 @@ function saveCoverImage(eventId: string, upload: CoverImageUpload) {
   return `/images/gallery/${fileName}`;
 }
 
-function requireAdminPassword() {
-  const value = process.env.ADMIN_PASSWORD;
+function requireAdminPassword(adminPassword: string | undefined) {
+  const value = adminPassword;
   if (!value) {
     throw new Error('Missing ADMIN_PASSWORD environment variable.');
   }
@@ -216,7 +216,7 @@ function validateEventPayload(
   };
 }
 
-function createAdminApiPlugin() {
+function createAdminApiPlugin(adminPasswordFromEnv: string | undefined) {
   return {
     name: 'arra-admin-api',
     configureServer(server) {
@@ -238,7 +238,7 @@ function createAdminApiPlugin() {
 
           if (pathname === '/api/admin/login' && req.method === 'POST') {
             const body = (await parseBody(req)) as { password?: string };
-            const adminPassword = requireAdminPassword();
+            const adminPassword = requireAdminPassword(adminPasswordFromEnv);
             if (body.password !== adminPassword) {
               sendJson(res, 401, { error: 'Invalid password.' });
               return;
@@ -385,11 +385,16 @@ function createAdminApiPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), tailwindcss(), createAdminApiPlugin()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, __dirname, '');
+  const adminPassword = env.ADMIN_PASSWORD ?? process.env.ADMIN_PASSWORD;
+
+  return {
+    plugins: [react(), tailwindcss(), createAdminApiPlugin(adminPassword)],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
     },
-  },
+  };
 });
