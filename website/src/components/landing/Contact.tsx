@@ -43,19 +43,6 @@ export function Contact() {
           </a>
 
           <a
-            href={contactLinks.whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <ContactIcon name="message" />
-            <div>
-              <div className="text-[12px] text-[#6B6B6B] mb-1">WhatsApp</div>
-              <div className="text-[16px] text-[#111111] font-medium">{contactInfo.phoneDisplay}</div>
-            </div>
-          </a>
-
-          <a
             href={contactLinks.instagram}
             target="_blank"
             rel="noopener noreferrer"
@@ -72,7 +59,7 @@ export function Contact() {
             href={contactLinks.facebook}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors md:col-span-2"
+            className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ContactIcon name="camera" />
             <div>

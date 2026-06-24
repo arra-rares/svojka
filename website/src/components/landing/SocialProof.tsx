@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSiteContent } from '@/context/LocaleContext';
+import { useLocaleContext, useSiteContent } from '@/context/LocaleContext';
 
 type Testimonial = {
   attribution: string;
@@ -7,19 +7,23 @@ type Testimonial = {
 };
 
 export function SocialProof() {
+  const { locale } = useLocaleContext();
   const { socialProofContent } = useSiteContent();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
 
   useEffect(() => {
     async function loadTestimonials() {
-      const response = await fetch('/data/testimonials.json');
-      if (!response.ok) return;
+      const response = await fetch(`/data/testimonials.${locale}.json`);
+      if (!response.ok) {
+        setTestimonials([]);
+        return;
+      }
       const data = (await response.json()) as { testimonials: Testimonial[] };
       setTestimonials(data.testimonials);
     }
 
     void loadTestimonials();
-  }, []);
+  }, [locale]);
 
   return (
     <section className="py-10 md:py-16 px-4 bg-[#FAFAFA]">

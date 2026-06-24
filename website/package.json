@@ -4,10 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "sync-testimonials": "node scripts/sync-testimonials.mjs",
     "sync-gallery": "node scripts/sync-gallery.mjs",
-    "dev": "npm run sync-testimonials && npm run sync-gallery && vite",
-    "build": "npm run sync-testimonials && npm run sync-gallery && tsc -b && vite build",
+    "dev": "npm run sync-gallery && vite",
+    "build": "npm run sync-gallery && tsc -b && vite build",
     "preview": "vite preview",
     "deploy": "node scripts/deploy-ftp.mjs",
     "launch": "node scripts/launch.mjs",
