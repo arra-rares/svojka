@@ -13,7 +13,9 @@ Simple workflow for managing gallery events and publishing the live website.
 
 `FTP_REMOTE_DIR` is usually something like `/www/domains/your-domain.sk` — check Webhouse FTP details.
 
-Use `FTP_SECURE=true` for FTP over TLS (Webhouse supports FTPs).
+`FTP_HOST` must be the **FTP server hostname from Webhouse SETUP**, not `ftp.your-domain.sk` (unless SETUP shows that) and not the raw IP address.
+
+Use `FTP_SECURE_MODE=explicit` for FTPS on port 21. Leave `FTP_TLS_REJECT_UNAUTHORIZED=false` (default) — Webhouse shared FTP certs often do not match IP/hostname strictly.
 
 ## Daily use
 
@@ -48,6 +50,6 @@ Upload can take a few minutes. Do not close the window during upload.
 | "Missing .env.local" | Copy `.env.example` → `.env.local` and fill in values |
 | Tailwind native binding error | Delete `website/node_modules`, run `npm install` inside `website/` |
 | Upload fails | Verify FTP host/user/password/path in Webhouse panel |
-| Need more detail | Check the deploy log panel in admin, the terminal window, or `website/logs/deploy-latest.log` |
-| TLS / certificate error | Try `FTP_TLS_REJECT_UNAUTHORIZED=false` in `.env.local` |
+| `ENOTFOUND ftp....` | Wrong host — copy exact FTP server hostname from Webhouse SETUP |
+| Certificate / altnames error | Use SETUP hostname not IP; keep `FTP_TLS_REJECT_UNAUTHORIZED=false` |
 | Connection timeout | Try `FTP_SECURE_MODE=implicit` and `FTP_PORT=990`, or `FTP_SECURE_MODE=plain` |

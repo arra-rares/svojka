@@ -98,6 +98,47 @@ function runBuild(log) {
   }
 }
 
+function isIpv4Host(host) {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+}
+
+function buildTlsOptions(env, host) {
+  const rejectUnauthorized =
+    (env.FTP_TLS_REJECT_UNAUTHORIZED ?? 'false').toLowerCase() === 'true';
+  const servername = env.FTP_TLS_SERVERNAME?.trim() || (isIpv4Host(host) ? '' : host);
+
+  const secureOptions = {
+    rejectUnauthorized,
+  };
+
+  if (servername) {
+    secureOptions.servername = servername;
+  }
+
+  return secureOptions;
+}
+
+function formatFtpError(error, host) {
+  const message = error instanceof Error ? error.message : 'FTP upload failed.';
+  const hints = [];
+
+  if (isIpv4Host(host)) {
+    hints.push('Use the FTP hostname from Webhouse SETUP, not the IP address.');
+  }
+  if (message.includes('certificate') || message.includes('altnames')) {
+    hints.push('Set FTP_TLS_REJECT_UNAUTHORIZED=false in .env.local (default for Webhouse).');
+    if (isIpv4Host(host)) {
+      hints.push('Or set FTP_TLS_SERVERNAME to the hostname shown in Webhouse FTP settings.');
+    }
+  }
+
+  if (hints.length === 0) {
+    return message;
+  }
+
+  return `${message} Hint: ${hints.join(' ')}`;
+}
+
 async function uploadDist(env, log) {
   const host = requireEnv(env, 'FTP_HOST');
   const user = requireEnv(env, 'FTP_USER');
@@ -105,11 +146,20 @@ async function uploadDist(env, log) {
   const remoteDir = requireEnv(env, 'FTP_REMOTE_DIR');
   const secure = resolveSecureMode(env);
   const port = env.FTP_PORT ? Number(env.FTP_PORT) : undefined;
-  const rejectUnauthorized = (env.FTP_TLS_REJECT_UNAUTHORIZED ?? 'true').toLowerCase() !== 'false';
+  const tlsOptions = buildTlsOptions(env, host);
 
   if (!fs.existsSync(distDir)) {
     throw new Error(`Build output missing at ${distDir}`);
   }
+
+  if (isIpv4Host(host)) {
+    log('Warning: FTP_HOST is an IP address. Prefer the FTP hostname from Webhouse SETUP.');
+  }
+  log(
+    `TLS verify: ${tlsOptions.rejectUnauthorized ? 'strict' : 'relaxed'}${
+      tlsOptions.servername ? `, servername=${tlsOptions.servername}` : ''
+    }`,
+  );
 
   const files = collectFiles(distDir);
   log(`Found ${files.length} file(s) in dist/.`);
@@ -126,9 +176,7 @@ async function uploadDist(env, log) {
       password,
       secure,
       port,
-      secureOptions: {
-        rejectUnauthorized,
-      },
+      secureOptions: tlsOptions,
     });
     log('FTP connection established.');
 
@@ -143,8 +191,7 @@ async function uploadDist(env, log) {
     await client.uploadFromDir(distDir);
     log(`Upload complete (${files.length} file(s)).`);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'FTP upload failed.';
-    throw new Error(`FTP upload failed: ${message}`);
+    throw new Error(`FTP upload failed: ${formatFtpError(error, host)}`);
   } finally {
     client.close();
   }
