@@ -13,9 +13,9 @@ Simple workflow for managing gallery events and publishing the live website.
 
 `FTP_REMOTE_DIR` is usually something like `/www/domains/your-domain.sk` — check Webhouse FTP details.
 
-`FTP_HOST` must be the **FTP server hostname from Webhouse SETUP**, not `ftp.your-domain.sk` (unless SETUP shows that) and not the raw IP address.
+`FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`, and `FTP_REMOTE_DIR` should match your **Total Commander** FTP session (Webhouse SETUP → FTP).
 
-Use `FTP_SECURE_MODE=explicit` for FTPS on port 21. Leave `FTP_TLS_REJECT_UNAUTHORIZED=false` (default) — Webhouse shared FTP certs often do not match IP/hostname strictly.
+Default is **plain FTP on port 21, no TLS** — same as Total Commander without “FTP over TLS” enabled. Do not set `FTP_SECURE_MODE=explicit` unless you use FTPS in Total Commander too.
 
 ## Daily use
 
@@ -49,7 +49,6 @@ Upload can take a few minutes. Do not close the window during upload.
 | "Node.js is not installed" | Install Node.js, restart, run `start-arra.bat` again |
 | "Missing .env.local" | Copy `.env.example` → `.env.local` and fill in values |
 | Tailwind native binding error | Delete `website/node_modules`, run `npm install` inside `website/` |
-| Upload fails | Verify FTP host/user/password/path in Webhouse panel |
-| `ENOTFOUND ftp....` | Wrong host — copy exact FTP server hostname from Webhouse SETUP |
-| Certificate / altnames error | Use SETUP hostname not IP; keep `FTP_TLS_REJECT_UNAUTHORIZED=false` |
-| Connection timeout | Try `FTP_SECURE_MODE=implicit` and `FTP_PORT=990`, or `FTP_SECURE_MODE=plain` |
+| Upload fails | Match host/user/password/path to Total Commander; check Webhouse SETUP |
+| `ENOTFOUND` / wrong host | Copy exact FTP server from Webhouse SETUP (same as Total Commander) |
+| Certificate / TLS errors | You are on FTPS — set `FTP_SECURE_MODE=plain` (default) for plain FTP |

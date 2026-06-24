@@ -55,7 +55,7 @@ function collectFiles(dirPath, baseDir = dirPath) {
 }
 
 function resolveSecureMode(env) {
-  const mode = (env.FTP_SECURE_MODE ?? 'explicit').trim().toLowerCase();
+  const mode = (env.FTP_SECURE_MODE ?? 'plain').trim().toLowerCase();
   if (mode === 'false' || mode === 'off' || mode === 'plain') {
     return false;
   }
@@ -126,10 +126,7 @@ function formatFtpError(error, host) {
     hints.push('Use the FTP hostname from Webhouse SETUP, not the IP address.');
   }
   if (message.includes('certificate') || message.includes('altnames')) {
-    hints.push('Set FTP_TLS_REJECT_UNAUTHORIZED=false in .env.local (default for Webhouse).');
-    if (isIpv4Host(host)) {
-      hints.push('Or set FTP_TLS_SERVERNAME to the hostname shown in Webhouse FTP settings.');
-    }
+    hints.push('Use plain FTP: FTP_SECURE_MODE=plain (same as Total Commander without TLS).');
   }
 
   if (hints.length === 0) {
@@ -146,7 +143,6 @@ async function uploadDist(env, log) {
   const remoteDir = requireEnv(env, 'FTP_REMOTE_DIR');
   const secure = resolveSecureMode(env);
   const port = env.FTP_PORT ? Number(env.FTP_PORT) : undefined;
-  const tlsOptions = buildTlsOptions(env, host);
 
   if (!fs.existsSync(distDir)) {
     throw new Error(`Build output missing at ${distDir}`);
@@ -155,11 +151,16 @@ async function uploadDist(env, log) {
   if (isIpv4Host(host)) {
     log('Warning: FTP_HOST is an IP address. Prefer the FTP hostname from Webhouse SETUP.');
   }
-  log(
-    `TLS verify: ${tlsOptions.rejectUnauthorized ? 'strict' : 'relaxed'}${
-      tlsOptions.servername ? `, servername=${tlsOptions.servername}` : ''
-    }`,
-  );
+  if (secure) {
+    const tlsOptions = buildTlsOptions(env, host);
+    log(
+      `TLS verify: ${tlsOptions.rejectUnauthorized ? 'strict' : 'relaxed'}${
+        tlsOptions.servername ? `, servername=${tlsOptions.servername}` : ''
+      }`,
+    );
+  } else {
+    log('Using plain FTP (no TLS), port 21 — same as Total Commander default.');
+  }
 
   const files = collectFiles(distDir);
   log(`Found ${files.length} file(s) in dist/.`);
@@ -169,15 +170,19 @@ async function uploadDist(env, log) {
   const client = new Client(120_000);
   client.ftp.log = (message) => log(`ftp | ${message}`);
 
+  const accessOptions = {
+    host,
+    user,
+    password,
+    secure,
+    port,
+  };
+  if (secure) {
+    accessOptions.secureOptions = buildTlsOptions(env, host);
+  }
+
   try {
-    await client.access({
-      host,
-      user,
-      password,
-      secure,
-      port,
-      secureOptions: tlsOptions,
-    });
+    await client.access(accessOptions);
     log('FTP connection established.');
 
     await client.ensureDir(remoteDir);
