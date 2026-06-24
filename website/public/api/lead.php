@@ -4,37 +4,23 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['ok' => false, 'error' => 'Method not allowed.']);
-    exit;
-}
-
-$config = require __DIR__ . '/lead-config.php';
-
-function respond(int $statusCode, array $payload): void
+function leadRespond(int $statusCode, array $payload): void
 {
     http_response_code($statusCode);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function readJsonBody(): array
+function leadTruncate(string $value, int $maxLength): string
 {
-    $raw = file_get_contents('php://input');
-    if ($raw === false || trim($raw) === '') {
-        return [];
+    if (function_exists('mb_substr')) {
+        return mb_substr($value, 0, $maxLength);
     }
 
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-        respond(400, ['ok' => false, 'error' => 'Invalid JSON body.']);
-    }
-
-    return $decoded;
+    return substr($value, 0, $maxLength);
 }
 
-function cleanString(mixed $value, int $maxLength): string
+function leadCleanString(mixed $value, int $maxLength): string
 {
     if (!is_string($value)) {
         return '';
@@ -45,28 +31,58 @@ function cleanString(mixed $value, int $maxLength): string
         return '';
     }
 
-    return mb_substr($trimmed, 0, $maxLength);
+    return leadTruncate($trimmed, $maxLength);
 }
 
-function validateLead(array $body): array
+function leadLoadConfig(): array
 {
-    $eventDate = cleanString($body['event_date'] ?? '', 10);
-    $email = cleanString($body['email'] ?? '', 254);
-    $phone = cleanString($body['phone'] ?? '', 40);
-    $location = cleanString($body['location'] ?? '', 200);
-    $type = cleanString($body['type'] ?? '', 40);
-    $people = cleanString($body['people'] ?? '', 10);
+    $configPath = __DIR__ . '/lead-config.php';
+    if (!is_file($configPath)) {
+        leadRespond(500, ['ok' => false, 'error' => 'Missing lead-config.php on server.']);
+    }
+
+    $config = require $configPath;
+    if (!is_array($config)) {
+        leadRespond(500, ['ok' => false, 'error' => 'Invalid lead-config.php format.']);
+    }
+
+    return $config;
+}
+
+function leadReadJsonBody(): array
+{
+    $raw = file_get_contents('php://input');
+    if ($raw === false || trim($raw) === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        leadRespond(400, ['ok' => false, 'error' => 'Invalid JSON body.']);
+    }
+
+    return $decoded;
+}
+
+function leadValidatePayload(array $body): array
+{
+    $eventDate = leadCleanString($body['event_date'] ?? '', 10);
+    $email = leadCleanString($body['email'] ?? '', 254);
+    $phone = leadCleanString($body['phone'] ?? '', 40);
+    $location = leadCleanString($body['location'] ?? '', 200);
+    $type = leadCleanString($body['type'] ?? '', 40);
+    $people = leadCleanString($body['people'] ?? '', 10);
 
     if ($eventDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $eventDate)) {
-        respond(400, ['ok' => false, 'error' => 'Event date is required.']);
+        leadRespond(400, ['ok' => false, 'error' => 'Event date is required.']);
     }
 
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        respond(400, ['ok' => false, 'error' => 'Valid email is required.']);
+        leadRespond(400, ['ok' => false, 'error' => 'Valid email is required.']);
     }
 
     if ($people !== '' && !preg_match('/^\d{1,6}$/', $people)) {
-        respond(400, ['ok' => false, 'error' => 'Guest count must be a number.']);
+        leadRespond(400, ['ok' => false, 'error' => 'Guest count must be a number.']);
     }
 
     return [
@@ -80,20 +96,20 @@ function validateLead(array $body): array
     ];
 }
 
-function isHoneypotTriggered(array $body): bool
+function leadIsHoneypotTriggered(array $body): bool
 {
-    return cleanString($body['company_website'] ?? '', 200) !== '';
+    return leadCleanString($body['company_website'] ?? '', 200) !== '';
 }
 
-function verifyRecaptcha(array $config, string $token): void
+function leadVerifyRecaptcha(array $config, string $token): void
 {
     $secret = trim($config['recaptcha_secret_key'] ?? '');
     if ($secret === '') {
-        respond(500, ['ok' => false, 'error' => 'reCAPTCHA is not configured on the server.']);
+        leadRespond(500, ['ok' => false, 'error' => 'reCAPTCHA is not configured on the server.']);
     }
 
     if ($token === '') {
-        respond(400, ['ok' => false, 'error' => 'reCAPTCHA verification required.']);
+        leadRespond(400, ['ok' => false, 'error' => 'reCAPTCHA verification required.']);
     }
 
     $payload = http_build_query([
@@ -106,14 +122,16 @@ function verifyRecaptcha(array $config, string $token): void
 
     if (function_exists('curl_init')) {
         $handle = curl_init('https://www.google.com/recaptcha/api/siteverify');
-        curl_setopt_array($handle, [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-        ]);
-        $result = curl_exec($handle);
-        curl_close($handle);
+        if ($handle !== false) {
+            curl_setopt_array($handle, [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 10,
+            ]);
+            $result = curl_exec($handle);
+            curl_close($handle);
+        }
     }
 
     if ($result === false) {
@@ -131,7 +149,7 @@ function verifyRecaptcha(array $config, string $token): void
     }
 
     if ($result === false) {
-        respond(500, ['ok' => false, 'error' => 'Unable to verify reCAPTCHA.']);
+        leadRespond(500, ['ok' => false, 'error' => 'Unable to verify reCAPTCHA (server cannot reach Google).']);
     }
 
     $decoded = json_decode((string) $result, true);
@@ -139,22 +157,22 @@ function verifyRecaptcha(array $config, string $token): void
         $errorCodes = is_array($decoded['error-codes'] ?? null)
             ? implode(', ', $decoded['error-codes'])
             : 'unknown';
-        respond(400, ['ok' => false, 'error' => 'reCAPTCHA verification failed: ' . $errorCodes]);
+        leadRespond(400, ['ok' => false, 'error' => 'reCAPTCHA verification failed: ' . $errorCodes]);
     }
 }
 
-function appendLeadLog(string $logFile, array $lead): void
+function leadAppendLog(string $logFile, array $lead): bool
 {
     $logDir = dirname($logFile);
-    if (!is_dir($logDir)) {
-        mkdir($logDir, 0755, true);
+    if (!is_dir($logDir) && !mkdir($logDir, 0755, true) && !is_dir($logDir)) {
+        return false;
     }
 
     $line = json_encode($lead, JSON_UNESCAPED_UNICODE) . PHP_EOL;
-    file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+    return file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX) !== false;
 }
 
-function sendLeadEmail(array $config, array $lead): bool
+function leadSendEmail(array $config, array $lead): bool
 {
     $to = $config['to_email'] ?? '';
     if ($to === '') {
@@ -163,7 +181,7 @@ function sendLeadEmail(array $config, array $lead): bool
 
     $fromEmail = $config['from_email'] ?? $to;
     $fromName = $config['from_name'] ?? 'ARRA Website';
-    $subject = 'New event inquiry — ' . $lead['event_date'];
+    $subject = 'New event inquiry - ' . $lead['event_date'];
 
     $lines = [
         'New booking request from the website',
@@ -188,24 +206,39 @@ function sendLeadEmail(array $config, array $lead): bool
     return mail($to, $subject, $body, implode("\r\n", $headers));
 }
 
-$body = readJsonBody();
-
-if (isHoneypotTriggered($body)) {
-    respond(200, ['ok' => true]);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    leadRespond(405, ['ok' => false, 'error' => 'Method not allowed.']);
 }
-
-verifyRecaptcha($config, cleanString($body['recaptcha_token'] ?? '', 4096));
-$lead = validateLead($body);
 
 try {
-    appendLeadLog($config['log_file'], $lead);
+    $config = leadLoadConfig();
+    $body = leadReadJsonBody();
+
+    if (leadIsHoneypotTriggered($body)) {
+        leadRespond(200, ['ok' => true]);
+    }
+
+    leadVerifyRecaptcha($config, leadCleanString($body['recaptcha_token'] ?? '', 4096));
+    $lead = leadValidatePayload($body);
+
+    $logSaved = leadAppendLog($config['log_file'], $lead);
+    $mailSent = leadSendEmail($config, $lead);
+
+    if (!$logSaved && !$mailSent) {
+        leadRespond(500, [
+            'ok' => false,
+            'error' => 'Unable to save lead log or send email. Check api/logs permissions on server.',
+        ]);
+    }
+
+    leadRespond(200, [
+        'ok' => true,
+        'mail_sent' => $mailSent,
+        'log_saved' => $logSaved,
+    ]);
 } catch (Throwable $error) {
-    respond(500, ['ok' => false, 'error' => 'Unable to save lead.']);
+    leadRespond(500, [
+        'ok' => false,
+        'error' => 'Lead handler error: ' . $error->getMessage(),
+    ]);
 }
-
-$mailSent = sendLeadEmail($config, $lead);
-
-respond(200, [
-    'ok' => true,
-    'mail_sent' => $mailSent,
-]);

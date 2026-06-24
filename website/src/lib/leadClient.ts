@@ -14,14 +14,22 @@ export async function submitLead(payload: LeadPayload): Promise<void> {
   try {
     data = raw ? (JSON.parse(raw) as { ok?: boolean; error?: string }) : {};
   } catch {
-    throw new Error(
-      response.ok
-        ? 'Invalid response from server.'
-        : `Server error (${response.status}). Check that api/lead.php is deployed.`,
-    );
+    throw new Error(summarizeRawResponse(raw, response.status));
   }
 
   if (!response.ok || !data.ok) {
     throw new Error(data.error ?? `Unable to send request (${response.status}).`);
   }
+}
+
+function summarizeRawResponse(raw: string, status: number): string {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return `Server error (${status}) with empty response.`;
+  }
+  if (trimmed.startsWith('{')) {
+    return `Server error (${status}).`;
+  }
+  const snippet = trimmed.replace(/\s+/g, ' ').slice(0, 160);
+  return `Server error (${status}): ${snippet}`;
 }
