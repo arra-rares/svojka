@@ -82,22 +82,6 @@ export const de: SiteContent = {
   socialProofContent: {
     statValue: '100+',
     statLabel: 'erfolgreich durchgeführte Veranstaltungen',
-    testimonials: [
-      {
-        quote:
-          '"Perfekter Service, die Gäste waren begeistert. Die Fotos in der Galerie sind großartig!"',
-        attribution: '— Lucia K., Hochzeit',
-      },
-      {
-        quote:
-          '"Video 360 war das Highlight des Abends. Professionell von Anfang bis Ende."',
-        attribution: '— Marek T., Firmenveranstaltung',
-      },
-      {
-        quote: '"Sofortdruck hat alle beeindruckt. Sehr empfehlenswert!"',
-        attribution: '— Eva S., Ball',
-      },
-    ],
   },
 
   servicesContent: {
@@ -235,11 +219,18 @@ export const de: SiteContent = {
           note: '60€ mit Fotobox/360',
           price: 'ab 120€',
         },
+        {
+          name: 'Instax Mini Verleih',
+          note: 'Einfache DIY-Option',
+          price: 'ab 90€',
+        },
       ],
     },
-    transportationNote: '+ Anfahrt 0,35 €/km ab Bratislava',
+    transportationNote: '+ Anfahrt 0,35 €/km ab Bratislava (Petrzalka)',
     pricingFootnote:
       'Preise gelten innerhalb der Slowakei. Endpreise für Veranstaltungen außerhalb der Slowakei können aufgrund der Logistik variieren.',
+    pricingFootnoteExtra:
+      'Einschränkungen der Location sowie standortspezifische Genehmigungskosten sind nicht im Preis enthalten.',
   },
 
   howItWorksContent: {
@@ -345,11 +336,11 @@ export const de: SiteContent = {
     },
     legalColumn: {
       title: 'Rechtliches',
-      items: [
-        'Datenschutz',
-        'AGB',
-        'Firmenbuch: 12345678',
-        'UID: SK1234567890',
+      links: [
+        { label: 'Datenschutz', href: '/privacy' },
+        { label: 'AGB', href: '/terms' },
+        { label: 'GDPR-Hinweis', href: '/gdpr' },
+        { label: 'Cookie-Richtlinie', href: '/cookies' },
       ],
     },
     copyright: '© 2026 ARRA Production. Alle Rechte vorbehalten.',

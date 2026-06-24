@@ -1,27 +1,33 @@
+import { legalCompanyInfo } from '@/content/company';
+
 type LegalPageProps = {
   kind: 'privacy' | 'gdpr' | 'terms' | 'cookies';
   onBackHome: () => void;
 };
 
+const companyBlock = [
+  `Controller name: ${legalCompanyInfo.name}`,
+  `Registered address: ${legalCompanyInfo.addressLines.join(', ')}`,
+  `Company ID (IČO): ${legalCompanyInfo.ico}`,
+  `Tax ID (DIČ): ${legalCompanyInfo.dic}`,
+  `VAT ID (IČ DPH): ${legalCompanyInfo.icDph}`,
+  `Contact email: ${legalCompanyInfo.email}`,
+];
+
 const pageMeta = {
   privacy: {
     title: 'Privacy Policy',
-    lastUpdated: '[PLACEHOLDER_DATE]',
+    lastUpdated: '2026-04-26',
     sections: [
       {
         heading: '1. Data Controller',
-        body: [
-          'Controller name: [PLACEHOLDER_COMPANY_NAME]',
-          'Registered address: [PLACEHOLDER_COMPANY_ADDRESS]',
-          'Company ID / VAT ID: [PLACEHOLDER_COMPANY_IDS]',
-          'Contact email: [PLACEHOLDER_PRIVACY_EMAIL]',
-        ],
+        body: companyBlock,
       },
       {
         heading: '2. What Data We Collect',
         body: [
-          'Booking data: [PLACEHOLDER_BOOKING_FIELDS]',
-          'Gallery data: [PLACEHOLDER_GALLERY_FIELDS]',
+          'Booking data: event date, email, phone (optional), location, event type, guest count.',
+          'Gallery data: event access passwords entered by visitors (checked server-side only).',
           'Technical data: [PLACEHOLDER_LOGS_AND_ANALYTICS]',
         ],
       },
@@ -45,7 +51,7 @@ const pageMeta = {
   },
   gdpr: {
     title: 'GDPR Notice',
-    lastUpdated: '[PLACEHOLDER_DATE]',
+    lastUpdated: '2026-04-26',
     sections: [
       {
         heading: '1. Your Rights',
@@ -61,7 +67,7 @@ const pageMeta = {
       {
         heading: '2. How to Exercise Rights',
         body: [
-          'Email: [PLACEHOLDER_PRIVACY_EMAIL]',
+          `Email: ${legalCompanyInfo.email}`,
           'Verification process: [PLACEHOLDER_VERIFICATION_PROCESS]',
           'Response time: [PLACEHOLDER_RESPONSE_SLA]',
         ],
@@ -69,17 +75,17 @@ const pageMeta = {
       {
         heading: '3. Processors and Transfers',
         body: [
-          'Hosting provider: [PLACEHOLDER_HOSTING_PROVIDER]',
+          'Hosting provider: Webhouse',
           'Analytics provider: [PLACEHOLDER_ANALYTICS_PROVIDER]',
-          'Media/gallery provider: [PLACEHOLDER_GALLERY_PROVIDER]',
+          'Media/gallery provider: Fotoshare',
           'International transfers: [PLACEHOLDER_TRANSFER_MECHANISM]',
         ],
       },
       {
         heading: '4. Supervisory Authority',
         body: [
-          'Authority: [PLACEHOLDER_AUTHORITY_NAME]',
-          'Website: [PLACEHOLDER_AUTHORITY_WEBSITE]',
+          'Authority: Úrad na ochranu osobných údajov SR (UOOU)',
+          'Website: https://dataprotection.gov.sk',
           'Contact: [PLACEHOLDER_AUTHORITY_CONTACT]',
         ],
       },
@@ -87,17 +93,21 @@ const pageMeta = {
   },
   terms: {
     title: 'Terms of Service',
-    lastUpdated: '[PLACEHOLDER_DATE]',
+    lastUpdated: '2026-04-26',
     sections: [
       {
-        heading: '1. Service Scope',
+        heading: '1. Service Provider',
+        body: companyBlock,
+      },
+      {
+        heading: '2. Service Scope',
         body: [
           'ARRA provides event services listed on this website.',
           'Final service scope is confirmed after direct communication with the client.',
         ],
       },
       {
-        heading: '2. Pricing and Payments',
+        heading: '3. Pricing and Payments',
         body: [
           'Displayed prices are baseline for Slovakia.',
           'Events outside Slovakia may require adjusted final pricing.',
@@ -106,7 +116,7 @@ const pageMeta = {
         ],
       },
       {
-        heading: '3. Booking and Cancellations',
+        heading: '4. Booking and Cancellations',
         body: [
           'Booking confirmation process: [PLACEHOLDER_BOOKING_PROCESS]',
           'Cancellation policy: [PLACEHOLDER_CANCELLATION_POLICY]',
@@ -114,7 +124,7 @@ const pageMeta = {
         ],
       },
       {
-        heading: '4. Liability',
+        heading: '5. Liability',
         body: [
           'Liability limitations: [PLACEHOLDER_LIABILITY_LIMITATION]',
           'Client responsibilities: [PLACEHOLDER_CLIENT_RESPONSIBILITIES]',
@@ -124,10 +134,14 @@ const pageMeta = {
   },
   cookies: {
     title: 'Cookie Policy',
-    lastUpdated: '[PLACEHOLDER_DATE]',
+    lastUpdated: '2026-04-26',
     sections: [
       {
-        heading: '1. What Cookies We Use',
+        heading: '1. Data Controller',
+        body: companyBlock,
+      },
+      {
+        heading: '2. What Cookies We Use',
         body: [
           'Necessary cookies: [PLACEHOLDER_NECESSARY_COOKIES]',
           'Analytics cookies: [PLACEHOLDER_ANALYTICS_COOKIES]',
@@ -135,7 +149,7 @@ const pageMeta = {
         ],
       },
       {
-        heading: '2. Why We Use Cookies',
+        heading: '3. Why We Use Cookies',
         body: [
           'Website functionality',
           'Traffic analytics',
@@ -143,7 +157,7 @@ const pageMeta = {
         ],
       },
       {
-        heading: '3. Consent and Control',
+        heading: '4. Consent and Control',
         body: [
           'Consent method: [PLACEHOLDER_CONSENT_METHOD]',
           'How to withdraw consent: [PLACEHOLDER_WITHDRAWAL_METHOD]',

@@ -94,6 +94,11 @@ export function Pricing() {
         <div className="mt-2 text-center text-[12px] text-[#6B6B6B]">
           {pricingContent.pricingFootnote}
         </div>
+        {'pricingFootnoteExtra' in pricingContent ? (
+          <div className="mt-1 text-center text-[12px] text-[#6B6B6B]">
+            {pricingContent.pricingFootnoteExtra}
+          </div>
+        ) : null}
       </div>
     </section>
   );

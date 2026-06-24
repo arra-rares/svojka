@@ -1,11 +1,8 @@
+import { legalCompanyInfo } from '@/content/company';
 import { useSiteContent } from '@/context/LocaleContext';
 
 export function Footer() {
   const { footerContent } = useSiteContent();
-  const legalPathByLabel: Record<string, string> = {
-    'Privacy Policy': '/privacy',
-    'Terms of Service': '/terms',
-  };
 
   return (
     <footer className="bg-[#FAFAFA] border-t border-[#EAEAEA] py-10 px-4">
@@ -36,27 +33,16 @@ export function Footer() {
               {footerContent.legalColumn.title}
             </h4>
             <ul className="space-y-2 text-[14px] text-[#6B6B6B]">
-              {footerContent.legalColumn.items.map((item) => (
-                <li key={item}>
-                  {legalPathByLabel[item] ? (
-                    <a href={legalPathByLabel[item]} className="hover:text-[#111111] underline">
-                      {item}
-                    </a>
-                  ) : (
-                    item
-                  )}
+              {footerContent.legalColumn.links.map((link) => (
+                <li key={link.href}>
+                  <a href={link.href} className="hover:text-[#111111] underline">
+                    {link.label}
+                  </a>
                 </li>
               ))}
-              <li>
-                <a href="/gdpr" className="hover:text-[#111111] underline">
-                  GDPR Notice
-                </a>
-              </li>
-              <li>
-                <a href="/cookies" className="hover:text-[#111111] underline">
-                  Cookie Policy
-                </a>
-              </li>
+              <li>IČO: {legalCompanyInfo.ico}</li>
+              <li>DIČ: {legalCompanyInfo.dic}</li>
+              <li>IČ DPH: {legalCompanyInfo.icDph}</li>
             </ul>
           </div>
         </div>

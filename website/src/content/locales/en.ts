@@ -81,22 +81,6 @@ export const en = {
   socialProofContent: {
     statValue: '100+',
     statLabel: 'successfully completed events',
-    testimonials: [
-      {
-        quote:
-          '"Perfect service, guests were thrilled. Photos from the gallery are amazing!"',
-        attribution: '— Lucia K., Wedding',
-      },
-      {
-        quote:
-          '"Video 360 was the highlight of the evening. Professional approach from start to finish."',
-        attribution: '— Marek T., Corporate Event',
-      },
-      {
-        quote: '"Instant photo printing impressed everyone. Definitely recommend!"',
-        attribution: '— Eva S., Prom',
-      },
-    ],
   },
 
   servicesContent: {
@@ -234,11 +218,18 @@ export const en = {
           note: '60€ with Photo Booth/360',
           price: 'from 120€',
         },
+        {
+          name: 'Instax Mini Rental',
+          note: 'Simple DIY option',
+          price: 'from 90€',
+        },
       ],
     },
-    transportationNote: '+ transportation 0.35€/km from Bratislava',
+    transportationNote: '+ transportation 0.35€/km from Bratislava (Petrzalka)',
     pricingFootnote:
       'Prices apply within Slovakia. Final pricing may vary for events outside Slovakia due to logistics.',
+    pricingFootnoteExtra:
+      'Venue restrictions and any venue-specific permit costs are not included.',
   },
 
   howItWorksContent: {
@@ -344,11 +335,11 @@ export const en = {
     },
     legalColumn: {
       title: 'Legal',
-      items: [
-        'Privacy Policy',
-        'Terms of Service',
-        'Business ID: 12345678',
-        'Tax ID: SK1234567890',
+      links: [
+        { label: 'Privacy Policy', href: '/privacy' },
+        { label: 'Terms of Service', href: '/terms' },
+        { label: 'GDPR Notice', href: '/gdpr' },
+        { label: 'Cookie Policy', href: '/cookies' },
       ],
     },
     copyright: '© 2026 ARRA Production. All rights reserved.',

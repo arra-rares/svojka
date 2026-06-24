@@ -82,22 +82,6 @@ export const sk: SiteContent = {
   socialProofContent: {
     statValue: '100+',
     statLabel: 'úspešne zrealizovaných akcií',
-    testimonials: [
-      {
-        quote:
-          '"Perfektný servis, hostia boli nadšení. Fotky v galérii sú úžasné!"',
-        attribution: '— Lucia K., svadba',
-      },
-      {
-        quote:
-          '"Video 360 bolo vrcholom večera. Profesionálny prístup od začiatku do konca."',
-        attribution: '— Marek T., firemná akcia',
-      },
-      {
-        quote: '"Okamžitý tlač fotiek všetkých ohúril. Určite odporúčam!"',
-        attribution: '— Eva S., ples',
-      },
-    ],
   },
 
   servicesContent: {
@@ -235,11 +219,18 @@ export const sk: SiteContent = {
           note: '60€ s Fotokútikom / 360',
           price: 'od 120€',
         },
+        {
+          name: 'Prenájom Instax Mini',
+          note: 'Jednoduchá DIY voľba',
+          price: 'od 90€',
+        },
       ],
     },
-    transportationNote: '+ doprava 0,35 €/km z Bratislavy',
+    transportationNote: '+ doprava 0,35 €/km z Bratislavy (Petržalka)',
     pricingFootnote:
       'Ceny platia v rámci Slovenska. Konečná cena pri akciách mimo Slovenska sa môže líšiť kvôli logistike.',
+    pricingFootnoteExtra:
+      'Obmedzenia miesta konania a prípadné povolenia špecifické pre miesto nie sú zahrnuté v cene.',
   },
 
   howItWorksContent: {
@@ -345,11 +336,11 @@ export const sk: SiteContent = {
     },
     legalColumn: {
       title: 'Právne informácie',
-      items: [
-        'Zásady ochrany osobných údajov',
-        'Obchodné podmienky',
-        'IČO: 12345678',
-        'IČ DPH: SK1234567890',
+      links: [
+        { label: 'Zásady ochrany osobných údajov', href: '/privacy' },
+        { label: 'Obchodné podmienky', href: '/terms' },
+        { label: 'GDPR informácie', href: '/gdpr' },
+        { label: 'Zásady cookies', href: '/cookies' },
       ],
     },
     copyright: '© 2026 ARRA Production. Všetky práva vyhradené.',

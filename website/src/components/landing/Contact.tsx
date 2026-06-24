@@ -1,3 +1,5 @@
+import { contactInfo } from '@/content/company';
+import { contactLinks } from '@/content/contactStatic';
 import { Camera, MessageCircle, Phone } from 'lucide-react';
 
 type ContactIconName = 'phone' | 'message' | 'camera';
@@ -19,46 +21,63 @@ export function Contact() {
 
         <div className="grid md:grid-cols-2 gap-6">
           <a
-            href="tel:+421900000000"
+            href={contactLinks.phone}
             className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ContactIcon name="phone" />
             <div>
-              <div className="text-[12px] text-[#6B6B6B] mb-1">Phone</div>
-              <div className="text-[16px] text-[#111111] font-medium">+421 900 000 000</div>
+              <div className="text-[12px] text-[#6B6B6B] mb-1">Phone / WhatsApp</div>
+              <div className="text-[16px] text-[#111111] font-medium">{contactInfo.phoneDisplay}</div>
             </div>
           </a>
 
           <a
-            href="mailto:info@arraprod.sk"
+            href={contactLinks.email}
             className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ContactIcon name="message" />
             <div>
               <div className="text-[12px] text-[#6B6B6B] mb-1">Email</div>
-              <div className="text-[16px] text-[#111111] font-medium">info@arraprod.sk</div>
+              <div className="text-[16px] text-[#111111] font-medium">{contactInfo.email}</div>
             </div>
           </a>
 
           <a
-            href="https://wa.me/421900000000"
+            href={contactLinks.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ContactIcon name="message" />
             <div>
               <div className="text-[12px] text-[#6B6B6B] mb-1">WhatsApp</div>
-              <div className="text-[16px] text-[#111111] font-medium">+421 900 000 000</div>
+              <div className="text-[16px] text-[#111111] font-medium">{contactInfo.phoneDisplay}</div>
             </div>
           </a>
 
           <a
-            href="https://instagram.com/arraprod"
+            href={contactLinks.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ContactIcon name="camera" />
             <div>
               <div className="text-[12px] text-[#6B6B6B] mb-1">Instagram</div>
-              <div className="text-[16px] text-[#111111] font-medium">@arraprod</div>
+              <div className="text-[16px] text-[#111111] font-medium">{contactInfo.instagramHandle}</div>
+            </div>
+          </a>
+
+          <a
+            href={contactLinks.facebook}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 p-6 bg-[#FAFAFA] rounded-lg hover:bg-gray-100 transition-colors md:col-span-2"
+          >
+            <ContactIcon name="camera" />
+            <div>
+              <div className="text-[12px] text-[#6B6B6B] mb-1">Facebook</div>
+              <div className="text-[16px] text-[#111111] font-medium">{contactInfo.facebookLabel}</div>
             </div>
           </a>
         </div>

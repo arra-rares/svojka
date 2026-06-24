@@ -2,7 +2,6 @@
 
 const b = '/images/backdrops';
 const s = '/images/services';
-const m = '/images/misc';
 
 export const heroImageUrl = `${s}/photobooth.webp`;
 
@@ -12,7 +11,7 @@ export const serviceImageUrls = {
   lowFog: `${s}/lowfog.webp`,
   coldSparks: `${s}/fireworks.webp`,
   guestbookPhone: `${s}/phonebooth.webp`,
-  instaxMini: `${m}/M0183.jpg`,
+  instaxMini: `${s}/instax.webp`,
 } as const;
 
 /** Full backdrop set (photobox detail grid + lightbox), filenames as on disk */
