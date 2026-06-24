@@ -102,24 +102,44 @@ function verifyRecaptcha(array $config, string $token): void
         'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
     ]);
 
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'POST',
-            'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
-            'content' => $payload,
-            'timeout' => 10,
-            'ignore_errors' => true,
-        ],
-    ]);
+    $result = false;
 
-    $result = file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $context);
+    if (function_exists('curl_init')) {
+        $handle = curl_init('https://www.google.com/recaptcha/api/siteverify');
+        curl_setopt_array($handle, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $result = curl_exec($handle);
+        curl_close($handle);
+    }
+
+    if ($result === false) {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+                'content' => $payload,
+                'timeout' => 10,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $result = @file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $context);
+    }
+
     if ($result === false) {
         respond(500, ['ok' => false, 'error' => 'Unable to verify reCAPTCHA.']);
     }
 
-    $decoded = json_decode($result, true);
+    $decoded = json_decode((string) $result, true);
     if (!is_array($decoded) || empty($decoded['success'])) {
-        respond(400, ['ok' => false, 'error' => 'reCAPTCHA verification failed.']);
+        $errorCodes = is_array($decoded['error-codes'] ?? null)
+            ? implode(', ', $decoded['error-codes'])
+            : 'unknown';
+        respond(400, ['ok' => false, 'error' => 'reCAPTCHA verification failed: ' . $errorCodes]);
     }
 }
 

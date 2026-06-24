@@ -49,9 +49,13 @@ The **Check Availability** form POSTs to `/api/lead`. Spam protection: **honeypo
 3. In `website/.env.local`:
    - `VITE_RECAPTCHA_SITE_KEY` — site key (frontend)
    - `RECAPTCHA_SECRET_KEY` — secret key (dev server)
-4. On Webhouse after deploy: copy `public/api/lead-config.local.example.php` → `lead-config.local.php` and set `recaptcha_secret_key` (same secret as above).
+4. On Webhouse after deploy: upload includes `api/lead-config.local.php` automatically when `RECAPTCHA_SECRET_KEY` is in `.env.local` (generated at deploy, not committed).
 
-Optional server override for email/from: `lead-config.local.php`.
+Optional manual override on server: `api/lead-config.local.php`.
+
+**Debug live server:** open `https://your-domain/api/lead-status.php` — should show `recaptcha_configured: true` and `recaptcha_secret_length` > 0.
+
+Domains in Google admin must include your **live domain** (e.g. `svojka.com` and `www.svojka.com`).
 
 ## Notes
 

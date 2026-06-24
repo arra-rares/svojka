@@ -221,6 +221,29 @@ async function uploadDist(env, log) {
   return files.length;
 }
 
+function writeProductionLeadConfig(env, log) {
+  const secret = env.RECAPTCHA_SECRET_KEY?.trim();
+  const configPath = path.join(distDir, 'api/lead-config.local.php');
+
+  if (!secret) {
+    log('Warning: RECAPTCHA_SECRET_KEY missing in .env.local — live booking form will fail after deploy.');
+    return;
+  }
+
+  const contents = `<?php
+
+declare(strict_types=1);
+
+// Generated during deploy from .env.local — do not commit.
+return [
+    'recaptcha_secret_key' => ${JSON.stringify(secret)},
+];
+`;
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, contents, 'utf8');
+  log('Wrote dist/api/lead-config.local.php for production reCAPTCHA.');
+}
+
 function writeLogFile(lines) {
   fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
   fs.writeFileSync(logFilePath, `${lines.join('\n')}\n`, 'utf8');
@@ -235,6 +258,7 @@ async function main() {
     log('Deploy started.');
     log(`Platform: ${process.platform}`);
     runBuild(log);
+    writeProductionLeadConfig(env, log);
     log('Uploading to Webhouse via FTP...');
     const uploadedCount = await uploadDist(env, log);
     log(`Deploy finished successfully (${uploadedCount} file(s) uploaded).`);

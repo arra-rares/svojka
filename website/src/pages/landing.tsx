@@ -129,8 +129,9 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
       setHoneypot('');
       setRecaptchaToken(null);
       recaptchaRef.current?.reset();
-    } catch {
-      setSubmitError(formValidationMessages.submitFailed);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : formValidationMessages.submitFailed;
+      setSubmitError(message);
       recaptchaRef.current?.reset();
       setRecaptchaToken(null);
     } finally {
