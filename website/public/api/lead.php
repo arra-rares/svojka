@@ -20,7 +20,7 @@ function leadTruncate(string $value, int $maxLength): string
     return substr($value, 0, $maxLength);
 }
 
-function leadCleanString(mixed $value, int $maxLength): string
+function leadCleanString($value, int $maxLength): string
 {
     if (!is_string($value)) {
         return '';
