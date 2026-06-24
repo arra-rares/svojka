@@ -26,7 +26,7 @@ const dateFnsLocaleByLocale = {
   de,
 } as const;
 
-const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '';
+const recaptchaSiteKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '').trim();
 
 type LandingProps = {
   onNavigateToGallery: () => void;

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const websiteRoot = path.resolve(__dirname, '..');
-const adminUrl = 'http://127.0.0.1:5173/manage-events-9xk2';
-const healthUrl = 'http://127.0.0.1:5173/';
+const adminUrl = 'http://localhost:5173/manage-events-9xk2';
+const healthUrl = 'http://localhost:5173/';
 
 async function waitForServer(maxAttempts = 80) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {

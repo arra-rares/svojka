@@ -45,7 +45,7 @@ The **Check Availability** form POSTs to `/api/lead`. Spam protection: **honeypo
 ### reCAPTCHA setup
 
 1. Create **reCAPTCHA v2 “I'm not a robot”** keys at [Google reCAPTCHA admin](https://www.google.com/recaptcha/admin).
-2. Add domains: `localhost`, your production domain.
+2. Add domains: `localhost`, `127.0.0.1`, and your production domain.
 3. In `website/.env.local`:
    - `VITE_RECAPTCHA_SITE_KEY` — site key (frontend)
    - `RECAPTCHA_SECRET_KEY` — secret key (dev server)
