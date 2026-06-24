@@ -5,6 +5,7 @@ import { Calendar as CalendarIcon, MessageCircle } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import '@/styles/datepicker.css';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { HeaderBrand } from '@/components/HeaderBrand';
 import { CTA } from '@/components/landing/CTA';
 import { Contact } from '@/components/landing/Contact';
 import { Footer } from '@/components/landing/Footer';
@@ -30,7 +31,6 @@ type LandingProps = {
 export function Landing({ onNavigateToGallery }: LandingProps) {
   const { locale } = useLocaleContext();
   const {
-    headerContent,
     bookingFormContent,
     floatingContactContent,
     formValidationMessages,
@@ -92,8 +92,8 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
   return (
     <div className="min-h-screen bg-white">
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#EAEAEA]">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
-          <div className="text-[22px] font-semibold text-[#111111]">{headerContent.brand}</div>
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-20 md:h-24 flex items-center justify-between">
+          <HeaderBrand />
           <LanguageSwitcher />
         </div>
       </header>

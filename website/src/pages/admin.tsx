@@ -56,6 +56,9 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
+  const [deploying, setDeploying] = useState(false);
+  const [deployMessage, setDeployMessage] = useState('');
+  const [deployError, setDeployError] = useState('');
 
   const isEditing = Boolean(form.id);
 
@@ -207,6 +210,29 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
     setFeedback('Event hidden.');
   }
 
+  async function handleDeploy() {
+    const confirmed = window.confirm(
+      'Build and upload the live website to Webhouse?\n\nThis can take a few minutes. Keep this window open.',
+    );
+    if (!confirmed) return;
+
+    setDeploying(true);
+    setDeployMessage('');
+    setDeployError('');
+    try {
+      const response = await fetch('/api/admin/deploy', { method: 'POST' });
+      const data = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Upload failed.');
+      }
+      setDeployMessage(data.message ?? 'Website uploaded.');
+    } catch (err) {
+      setDeployError(err instanceof Error ? err.message : 'Upload failed.');
+    } finally {
+      setDeploying(false);
+    }
+  }
+
   if (loading) {
     return <div className="min-h-screen bg-white p-6 text-[#111111]">Loading admin...</div>;
   }
@@ -263,6 +289,25 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
               Logout
             </button>
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#EAEAEA] p-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-[18px] font-medium text-[#111111]">Publish website</h2>
+            <p className="text-[13px] text-[#6B6B6B]">
+              Builds the site and uploads it to Webhouse. Do this after you add or edit events.
+            </p>
+            {deployMessage ? <p className="text-[12px] text-[#2E7D32] mt-2">{deployMessage}</p> : null}
+            {deployError ? <p className="text-[12px] text-red-500 mt-2">{deployError}</p> : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleDeploy()}
+            disabled={deploying}
+            className="px-5 py-3 bg-[#111111] text-white rounded-lg hover:bg-black disabled:opacity-60"
+          >
+            {deploying ? 'Uploading...' : 'Upload to website'}
+          </button>
         </div>
 
         <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6">

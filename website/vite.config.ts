@@ -2,6 +2,7 @@
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
+import { spawn } from 'child_process';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -32,6 +33,7 @@ const galleryImageDirPath = path.resolve(__dirname, 'public/images/gallery');
 const authCookieName = 'arra_admin_auth';
 const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 let activeAdminSessionToken = '';
+let deployInProgress = false;
 
 function ensureStorage() {
   if (!fs.existsSync(path.dirname(dataFilePath))) {
@@ -216,7 +218,43 @@ function validateEventPayload(
   };
 }
 
-function createAdminApiPlugin(adminPasswordFromEnv: string | undefined) {
+function requireFtpConfig(env: Record<string, string>) {
+  const requiredKeys = ['FTP_HOST', 'FTP_USER', 'FTP_PASSWORD', 'FTP_REMOTE_DIR'];
+  const missing = requiredKeys.filter((key) => !env[key]?.trim());
+  if (missing.length > 0) {
+    throw new Error(`Missing FTP settings in .env.local: ${missing.join(', ')}`);
+  }
+}
+
+function runDeployScript() {
+  return new Promise<string>((resolve, reject) => {
+    const scriptPath = path.resolve(__dirname, 'scripts/deploy-ftp.mjs');
+    const child = spawn(process.execPath, [scriptPath], {
+      cwd: __dirname,
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let output = '';
+    child.stdout.on('data', (chunk: Buffer) => {
+      output += chunk.toString('utf8');
+    });
+    child.stderr.on('data', (chunk: Buffer) => {
+      output += chunk.toString('utf8');
+    });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      const trimmed = output.trim();
+      if (code === 0) {
+        resolve(trimmed || 'Website uploaded successfully.');
+        return;
+      }
+      reject(new Error(trimmed || 'Deploy failed.'));
+    });
+  });
+}
+
+function createAdminApiPlugin(adminPasswordFromEnv: string | undefined, env: Record<string, string>) {
   return {
     name: 'arra-admin-api',
     configureServer(server) {
@@ -265,6 +303,25 @@ function createAdminApiPlugin(adminPasswordFromEnv: string | undefined) {
           if (pathname.startsWith('/api/admin/')) {
             if (!isAuthenticated(req)) {
               sendJson(res, 401, { error: 'Unauthorized.' });
+              return;
+            }
+
+            if (pathname === '/api/admin/deploy' && req.method === 'POST') {
+              if (deployInProgress) {
+                sendJson(res, 409, { error: 'Upload already in progress.' });
+                return;
+              }
+              requireFtpConfig(env);
+              deployInProgress = true;
+              try {
+                const message = await runDeployScript();
+                sendJson(res, 200, { ok: true, message });
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Deploy failed.';
+                sendJson(res, 500, { error: message });
+              } finally {
+                deployInProgress = false;
+              }
               return;
             }
 
@@ -390,7 +447,7 @@ export default defineConfig(({ mode }) => {
   const adminPassword = env.ADMIN_PASSWORD ?? process.env.ADMIN_PASSWORD;
 
   return {
-    plugins: [react(), tailwindcss(), createAdminApiPlugin(adminPassword)],
+    plugins: [react(), tailwindcss(), createAdminApiPlugin(adminPassword, env)],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

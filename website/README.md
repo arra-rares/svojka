@@ -7,6 +7,10 @@ npm install
 npm run dev
 ```
 
+## Windows site manager
+
+Double-click `../start-arra.bat` from the repo root. See [`../docs/site-manager.md`](../docs/site-manager.md).
+
 ## Troubleshooting: `Cannot find native binding` from `@tailwindcss/oxide`
 
 If Vite fails with an error like:

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useSiteContent } from '@/context/LocaleContext';
+import { fetchGalleryEvents, verifyGalleryAccess } from '@/lib/galleryClient';
 import type { GalleryEventPublic } from '@/types/gallery';
 
 type GalleryProps = {
@@ -20,13 +21,12 @@ export function Gallery({ onViewAll }: GalleryProps) {
   useEffect(() => {
     async function loadLatestEvents() {
       setLoadError('');
-      const response = await fetch('/api/gallery/events');
-      if (!response.ok) {
+      try {
+        const loadedEvents = await fetchGalleryEvents();
+        setEvents(loadedEvents.slice(0, 6));
+      } catch {
         setLoadError('Unable to load recent events right now.');
-        return;
       }
-      const data = (await response.json()) as { events: GalleryEventPublic[] };
-      setEvents(data.events.slice(0, 6));
     }
 
     void loadLatestEvents();
@@ -35,20 +35,12 @@ export function Gallery({ onViewAll }: GalleryProps) {
   async function unlockEvent() {
     if (!selectedEvent) return;
     setPasswordError('');
-    const response = await fetch('/api/gallery/access', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: selectedEvent.id,
-        password: enteredPassword,
-      }),
-    });
-    if (!response.ok) {
+    const fotoshareUrl = await verifyGalleryAccess(selectedEvent.id, enteredPassword);
+    if (!fotoshareUrl) {
       setPasswordError('Incorrect password.');
       return;
     }
-    const data = (await response.json()) as { fotoshareUrl: string };
-    window.location.assign(data.fotoshareUrl);
+    window.location.assign(fotoshareUrl);
   }
 
   return (

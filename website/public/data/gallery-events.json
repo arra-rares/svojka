@@ -1,0 +1,60 @@
+{
+  "events": [
+    {
+      "id": "private-event-zilina-2026-11-08",
+      "name": "Private Event Zilina 2026-11-08",
+      "type": "other",
+      "date": "2026-11-08",
+      "coverImage": "/images/gallery/placeholder-event.svg",
+      "visible": true
+    },
+    {
+      "id": "anna-peter-2026-10-05",
+      "name": "Anna & Peter 2026-10-05",
+      "type": "wedding",
+      "date": "2026-10-05",
+      "coverImage": "/images/gallery/placeholder-event.svg",
+      "visible": true
+    },
+    {
+      "id": "stuzkova-nitra-2026-09-20",
+      "name": "Stuzkova Nitra 2026-09-20",
+      "type": "stuzkova",
+      "date": "2026-09-20",
+      "coverImage": "/images/gallery/placeholder-event.svg",
+      "visible": true
+    },
+    {
+      "id": "party-trnava-2026-07-12",
+      "name": "Party Trnava 2026-07-12",
+      "type": "party",
+      "date": "2026-07-12",
+      "coverImage": "/images/gallery/placeholder-event.svg",
+      "visible": true
+    },
+    {
+      "id": "corporate-bratislava-2026-06-28",
+      "name": "Corporate Bratislava 2026-06-28",
+      "type": "corporate",
+      "date": "2026-06-28",
+      "coverImage": "/images/gallery/placeholder-event.svg",
+      "visible": true
+    },
+    {
+      "id": "martin-jelena-2026-06-14",
+      "name": "Martin & Jelena 2026-06-14",
+      "type": "wedding",
+      "date": "2026-06-14",
+      "coverImage": "/images/gallery/placeholder-event.svg",
+      "visible": true
+    },
+    {
+      "id": "wedding-bratislava-2026-05-10",
+      "name": "Wedding Bratislava",
+      "type": "wedding",
+      "date": "2026-05-10",
+      "coverImage": "/images/gallery/placeholder-event.svg",
+      "visible": true
+    }
+  ]
+}

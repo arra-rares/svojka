@@ -1,0 +1,39 @@
+{
+  "events": [
+    {
+      "id": "wedding-bratislava-2026-05-10",
+      "password": "client-password",
+      "fotoshareUrl": "https://fotoshare.co/e/example-id"
+    },
+    {
+      "id": "martin-jelena-2026-06-14",
+      "password": "placeholder-1",
+      "fotoshareUrl": "https://fotoshare.co/e/placeholder-1"
+    },
+    {
+      "id": "corporate-bratislava-2026-06-28",
+      "password": "placeholder-2",
+      "fotoshareUrl": "https://fotoshare.co/e/placeholder-2"
+    },
+    {
+      "id": "party-trnava-2026-07-12",
+      "password": "placeholder-3",
+      "fotoshareUrl": "https://fotoshare.co/e/placeholder-3"
+    },
+    {
+      "id": "stuzkova-nitra-2026-09-20",
+      "password": "placeholder-4",
+      "fotoshareUrl": "https://fotoshare.co/e/placeholder-4"
+    },
+    {
+      "id": "anna-peter-2026-10-05",
+      "password": "placeholder-5",
+      "fotoshareUrl": "https://fotoshare.co/e/placeholder-5"
+    },
+    {
+      "id": "private-event-zilina-2026-11-08",
+      "password": "placeholder-6",
+      "fotoshareUrl": "https://fotoshare.co/e/placeholder-6"
+    }
+  ]
+}

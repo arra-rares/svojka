@@ -8,7 +8,7 @@ export function Hero({ onOpenBookingForm }: HeroProps) {
   const { heroContent } = useSiteContent();
 
   return (
-    <section className="relative h-[600px] md:h-[700px] flex items-center justify-center mt-14 md:mt-16">
+    <section className="relative h-[600px] md:h-[700px] flex items-center justify-center mt-20 md:mt-24">
       <img
         src={heroContent.imageSrc}
         alt={heroContent.imageAlt}

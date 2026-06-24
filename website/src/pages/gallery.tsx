@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { HeaderBrand } from '@/components/HeaderBrand';
 import { useSiteContent } from '@/context/LocaleContext';
+import { fetchGalleryEvents, verifyGalleryAccess } from '@/lib/galleryClient';
 import type { GalleryEventPublic } from '@/types/gallery';
 
 type Event = GalleryEventPublic;
@@ -11,7 +13,7 @@ type GalleryPageProps = {
 };
 
 export function GalleryPage({ onBackToHome }: GalleryPageProps) {
-  const { galleryPageContent, headerContent, galleryPasswordModalContent } = useSiteContent();
+  const { galleryPageContent, galleryPasswordModalContent } = useSiteContent();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [enteredPassword, setEnteredPassword] = useState('');
@@ -33,13 +35,12 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
   useEffect(() => {
     async function loadEvents() {
       setEventsLoadError('');
-      const response = await fetch('/api/gallery/events');
-      if (!response.ok) {
+      try {
+        const loadedEvents = await fetchGalleryEvents();
+        setAllEvents(loadedEvents);
+      } catch {
         setEventsLoadError('Unable to load gallery events right now.');
-        return;
       }
-      const data = (await response.json()) as { events: Event[] };
-      setAllEvents(data.events);
     }
 
     void loadEvents();
@@ -48,20 +49,12 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
   async function unlockEvent() {
     if (!selectedEvent) return;
     setPasswordError('');
-    const response = await fetch('/api/gallery/access', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: selectedEvent.id,
-        password: enteredPassword,
-      }),
-    });
-    if (!response.ok) {
+    const fotoshareUrl = await verifyGalleryAccess(selectedEvent.id, enteredPassword);
+    if (!fotoshareUrl) {
       setPasswordError('Incorrect password.');
       return;
     }
-    const data = (await response.json()) as { fotoshareUrl: string };
-    window.location.assign(data.fotoshareUrl);
+    window.location.assign(fotoshareUrl);
   }
 
   const filteredEvents = useMemo(() => {
@@ -94,7 +87,7 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
   return (
     <div className="min-h-screen bg-white">
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#EAEAEA]">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-20 md:h-24 flex items-center justify-between">
           <button
             type="button"
             onClick={onBackToHome}
@@ -104,13 +97,13 @@ export function GalleryPage({ onBackToHome }: GalleryPageProps) {
             <span className="text-[16px] font-medium">{galleryPageContent.backToHome}</span>
           </button>
           <div className="flex items-center gap-4">
-            <div className="text-[22px] font-semibold text-[#111111]">{headerContent.brand}</div>
+            <HeaderBrand />
             <LanguageSwitcher />
           </div>
         </div>
       </header>
 
-      <main className="pt-20 md:pt-24 pb-16 px-4">
+      <main className="pt-24 md:pt-28 pb-16 px-4">
         <div className="max-w-[1200px] mx-auto">
           <div className="mb-10">
             <h1 className="text-[28px] md:text-[36px] font-semibold text-[#111111] mb-2">
