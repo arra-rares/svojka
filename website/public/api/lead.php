@@ -203,7 +203,10 @@ function leadSendEmail(array $config, array $lead): bool
         'Reply-To: ' . $lead['email'],
     ];
 
-    return mail($to, $subject, $body, implode("\r\n", $headers));
+    $sent = mail($to, $subject, $body, implode("\r\n", $headers));
+
+    // PHP 7.0 mail() can return null on some hosts; strict :bool rejects that.
+    return $sent === true;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
