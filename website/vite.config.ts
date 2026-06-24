@@ -29,6 +29,7 @@ type CoverImageUpload = {
 };
 
 const dataFilePath = path.resolve(__dirname, 'data/gallery.json');
+const leadLogFilePath = path.resolve(__dirname, 'data/leads.jsonl');
 const galleryImageDirPath = path.resolve(__dirname, 'public/images/gallery');
 const authCookieName = 'arra_admin_auth';
 const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
@@ -291,6 +292,72 @@ function streamDeployScript(res, env: Record<string, string>) {
   });
 }
 
+function isHoneypotTriggered(body: unknown): boolean {
+  const payload = body as Record<string, unknown>;
+  const value = typeof payload.company_website === 'string' ? payload.company_website.trim() : '';
+  return value !== '';
+}
+
+async function verifyRecaptcha(secretKey: string, token: string): Promise<void> {
+  if (!secretKey.trim()) {
+    throw new Error('reCAPTCHA is not configured on the server.');
+  }
+  if (!token.trim()) {
+    throw new Error('reCAPTCHA verification required.');
+  }
+
+  const params = new URLSearchParams({
+    secret: secretKey.trim(),
+    response: token.trim(),
+  });
+
+  const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  });
+
+  const data = (await response.json()) as { success?: boolean };
+  if (!data.success) {
+    throw new Error('reCAPTCHA verification failed.');
+  }
+}
+
+function validateLeadPayload(body: unknown) {
+  const payload = body as Record<string, unknown>;
+  const eventDate = typeof payload.event_date === 'string' ? payload.event_date.trim() : '';
+  const email = typeof payload.email === 'string' ? payload.email.trim() : '';
+  const phone = typeof payload.phone === 'string' ? payload.phone.trim() : '';
+  const location = typeof payload.location === 'string' ? payload.location.trim() : '';
+  const type = typeof payload.type === 'string' ? payload.type.trim() : '';
+  const people = typeof payload.people === 'string' ? payload.people.trim() : '';
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+    throw new Error('Event date is required.');
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Valid email is required.');
+  }
+  if (people && !/^\d{1,6}$/.test(people)) {
+    throw new Error('Guest count must be a number.');
+  }
+
+  return {
+    date: new Date().toISOString(),
+    event_date: eventDate,
+    email,
+    phone,
+    location,
+    type,
+    people,
+  };
+}
+
+function appendLeadLog(lead: Record<string, string>) {
+  fs.mkdirSync(path.dirname(leadLogFilePath), { recursive: true });
+  fs.appendFileSync(leadLogFilePath, `${JSON.stringify(lead)}\n`, 'utf8');
+}
+
 function createAdminApiPlugin(adminPasswordFromEnv: string | undefined, env: Record<string, string>) {
   return {
     name: 'arra-admin-api',
@@ -449,6 +516,33 @@ function createAdminApiPlugin(adminPasswordFromEnv: string | undefined, env: Rec
               sendJson(res, 200, { event });
               return;
             }
+          }
+
+          if (pathname === '/api/lead' && req.method === 'POST') {
+            const body = await parseBody(req);
+
+            if (isHoneypotTriggered(body)) {
+              sendJson(res, 200, { ok: true });
+              return;
+            }
+
+            try {
+              const recaptchaSecret = env.RECAPTCHA_SECRET_KEY ?? '';
+              const recaptchaToken =
+                typeof (body as Record<string, unknown>).recaptcha_token === 'string'
+                  ? (body as Record<string, string>).recaptcha_token
+                  : '';
+              await verifyRecaptcha(recaptchaSecret, recaptchaToken);
+              const lead = validateLeadPayload(body);
+              appendLeadLog(lead);
+              console.log('[lead] saved locally (dev):', lead);
+              console.log('[lead] email is sent by PHP on production deploy only');
+              sendJson(res, 200, { ok: true, mail_sent: false });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'Lead submission failed.';
+              sendJson(res, 400, { ok: false, error: message });
+            }
+            return;
           }
 
           if (pathname === '/api/gallery/events' && req.method === 'GET') {

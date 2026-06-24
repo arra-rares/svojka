@@ -35,6 +35,7 @@ export const de: SiteContent = {
     trustLine: 'Wir melden uns innerhalb von 24 Stunden.',
     cancel: 'Abbrechen',
     submit: 'Anfrage senden',
+    submitting: 'Wird gesendet...',
     closeCalendarAriaLabel: 'Kalender schließen',
     eventTypeOptions: [
       { value: '', label: 'Art wählen' },
@@ -49,6 +50,9 @@ export const de: SiteContent = {
   formValidationMessages: {
     emailInvalid: 'Bitte gültige E-Mail eingeben',
     phoneInvalid: 'Bitte gültige Telefonnummer eingeben',
+    dateRequired: 'Bitte Veranstaltungsdatum wählen',
+    recaptchaRequired: 'Bitte reCAPTCHA abschließen',
+    submitFailed: 'Anfrage konnte nicht gesendet werden. Bitte WhatsApp oder E-Mail nutzen.',
   },
 
   successToastContent: {

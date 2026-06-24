@@ -21,7 +21,7 @@ That API powers:
 
 - Admin gallery management (`/manage-events-9xk2`)
 - Gallery event list + password check (`/api/gallery/*`)
-- Future lead form email endpoint (`/api/lead` — planned)
+- Lead form email via PHP (`public/api/lead.php` → POST `/api/lead`)
 
 ---
 
@@ -38,7 +38,7 @@ That API powers:
 | Gallery password → Fotoshare redirect | Yes (`/api/gallery/access`) |
 | Admin page + uploads | Yes (`/api/admin/*`) |
 | `ADMIN_PASSWORD` / `.env` | Yes — read by server at runtime |
-| Lead form email (planned) | Yes |
+| Lead form email (planned) | Yes — **done** via `public/api/lead.php` |
 
 **Environment variables (production):**
 
@@ -68,7 +68,7 @@ Set in hosting panel / process manager — **not** in Git.
 | Static React site via FTP | Yes — upload `dist/` |
 | Free SSL, `.htaccess`, SPA routing | Yes |
 | Company email mailboxes | Yes |
-| Lead form email (future) | Yes — via **PHP** + `mail()` or SMTP, not Node |
+| Lead form email | Yes — PHP `mail()` via `/api/lead` |
 | WebCron for scheduled tasks | Yes |
 | Gallery/admin as built today | **No** — APIs are Node-only |
 

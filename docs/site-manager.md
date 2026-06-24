@@ -35,6 +35,24 @@ Keep the black terminal window open while working. Closing it stops the local se
 
 Upload can take a few minutes. Do not close the window during upload.
 
+## Booking form (leads)
+
+The **Check Availability** form POSTs to `/api/lead`. Spam protection: **honeypot** + **reCAPTCHA v2**.
+
+- **Production (Webhouse):** PHP verifies reCAPTCHA, sends email to `arra@jstudio.sk`, appends `api/logs/leads.jsonl`.
+- **Local dev:** same verification via Vite; saves to `website/data/leads.jsonl` (no email).
+
+### reCAPTCHA setup
+
+1. Create **reCAPTCHA v2 “I'm not a robot”** keys at [Google reCAPTCHA admin](https://www.google.com/recaptcha/admin).
+2. Add domains: `localhost`, your production domain.
+3. In `website/.env.local`:
+   - `VITE_RECAPTCHA_SITE_KEY` — site key (frontend)
+   - `RECAPTCHA_SECRET_KEY` — secret key (dev server)
+4. On Webhouse after deploy: copy `public/api/lead-config.local.example.php` → `lead-config.local.php` and set `recaptcha_secret_key` (same secret as above).
+
+Optional server override for email/from: `lead-config.local.php`.
+
 ## Notes
 
 - Admin runs **only on your PC**, not on the live website.
@@ -51,4 +69,4 @@ Upload can take a few minutes. Do not close the window during upload.
 | Tailwind native binding error | Delete `website/node_modules`, run `npm install` inside `website/` |
 | Upload fails | Match host/user/password/path to Total Commander; check Webhouse SETUP |
 | `ENOTFOUND` / wrong host | Copy exact FTP server from Webhouse SETUP (same as Total Commander) |
-| Certificate / TLS errors | You are on FTPS — set `FTP_SECURE_MODE=plain` (default) for plain FTP |
+| `530 Login incorrect` | Wrong user/password, or broken `.env.local` (one var per line). Match Total Commander exactly. Password with `#` or `&`? Wrap in quotes: `FTP_PASSWORD="..."` |

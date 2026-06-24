@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { de, enUS, sk } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, MessageCircle } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import '@/styles/datepicker.css';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { RecaptchaField, type RecaptchaFieldHandle } from '@/components/RecaptchaField';
 import { HeaderBrand } from '@/components/HeaderBrand';
 import { CTA } from '@/components/landing/CTA';
 import { Contact } from '@/components/landing/Contact';
@@ -16,6 +17,7 @@ import { Pricing } from '@/components/landing/Pricing';
 import { Services } from '@/components/landing/Services';
 import { SocialProof } from '@/components/landing/SocialProof';
 import { telHref, whatsappHref } from '@/content/contactStatic';
+import { submitLead } from '@/lib/leadClient';
 import { useLocaleContext, useSiteContent } from '@/context/LocaleContext';
 
 const dateFnsLocaleByLocale = {
@@ -23,6 +25,8 @@ const dateFnsLocaleByLocale = {
   sk,
   de,
 } as const;
+
+const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '';
 
 type LandingProps = {
   onNavigateToGallery: () => void;
@@ -44,8 +48,18 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [location, setLocation] = useState('');
+  const [eventType, setEventType] = useState('');
+  const [guestCount, setGuestCount] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState('');
+  const [honeypot, setHoneypot] = useState('');
+  const recaptchaRef = useRef<RecaptchaFieldHandle>(null);
 
   const validateEmail = (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,12 +72,20 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
     return phoneRegex.test(phone);
   };
 
-  const handleFormSubmit = (e: FormEvent) => {
+  async function handleFormSubmit(e: FormEvent) {
     e.preventDefault();
     setEmailError('');
     setPhoneError('');
+    setDateError('');
+    setSubmitError('');
+    setRecaptchaError('');
 
     let hasErrors = false;
+
+    if (!selectedDate) {
+      setDateError(formValidationMessages.dateRequired);
+      hasErrors = true;
+    }
 
     if (!email || !validateEmail(email)) {
       setEmailError(formValidationMessages.emailInvalid);
@@ -75,19 +97,57 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
       hasErrors = true;
     }
 
-    if (!selectedDate) {
-      hasErrors = true;
+    if (hasErrors || !selectedDate) return;
+
+    if (!recaptchaToken) {
+      setRecaptchaError(formValidationMessages.recaptchaRequired);
+      return;
     }
 
-    if (hasErrors) return;
+    setSubmitting(true);
+    try {
+      await submitLead({
+        event_date: format(selectedDate, 'yyyy-MM-dd'),
+        email: email.trim(),
+        phone: phoneNumber.trim() || undefined,
+        location: location.trim() || undefined,
+        type: eventType || undefined,
+        people: guestCount.trim() || undefined,
+        recaptcha_token: recaptchaToken,
+        company_website: honeypot,
+      });
 
+      setShowForm(false);
+      setShowSuccess(true);
+      window.setTimeout(() => setShowSuccess(false), 5000);
+      setSelectedDate(undefined);
+      setEmail('');
+      setPhoneNumber('');
+      setLocation('');
+      setEventType('');
+      setGuestCount('');
+      setHoneypot('');
+      setRecaptchaToken(null);
+      recaptchaRef.current?.reset();
+    } catch {
+      setSubmitError(formValidationMessages.submitFailed);
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function closeBookingForm() {
     setShowForm(false);
-    setShowSuccess(true);
-    window.setTimeout(() => setShowSuccess(false), 5000);
-    setSelectedDate(undefined);
-    setEmail('');
-    setPhoneNumber('');
-  };
+    setEmailError('');
+    setPhoneError('');
+    setDateError('');
+    setSubmitError('');
+    setRecaptchaError('');
+    setRecaptchaToken(null);
+    recaptchaRef.current?.reset();
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -122,6 +182,21 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
             <h3 className="text-[22px] font-semibold text-[#111111] mb-6">{bookingFormContent.title}</h3>
 
             <form onSubmit={handleFormSubmit} className="space-y-5">
+              <div
+                aria-hidden="true"
+                className="absolute left-[-10000px] top-auto h-px w-px overflow-hidden"
+              >
+                <label htmlFor="booking-company-website">Company website</label>
+                <input
+                  id="booking-company-website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(ev) => setHoneypot(ev.target.value)}
+                />
+              </div>
+
               <div>
                 <label className="block text-[14px] text-[#111111] mb-2" htmlFor="booking-event-date">
                   {bookingFormContent.eventDateLabel}
@@ -133,7 +208,7 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
                     onClick={() => setShowDatePicker(!showDatePicker)}
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:border-[#111111] text-left flex items-center justify-between ${
                       !selectedDate ? 'text-[#9E9E9E]' : 'text-[#111111]'
-                    } ${!selectedDate && emailError ? 'border-red-500' : 'border-[#EAEAEA]'}`}
+                    } ${dateError ? 'border-red-500' : 'border-[#EAEAEA]'}`}
                   >
                     <span>
                       {selectedDate
@@ -142,6 +217,7 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
                     </span>
                     <CalendarIcon className="w-5 h-5 text-[#6B6B6B]" />
                   </button>
+                  {dateError ? <p className="text-[12px] text-red-500 mt-1">{dateError}</p> : null}
 
                   {showDatePicker ? (
                     <>
@@ -157,6 +233,7 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
                           selected={selectedDate}
                           onSelect={(date) => {
                             setSelectedDate(date);
+                            setDateError('');
                             setShowDatePicker(false);
                           }}
                           disabled={{ before: new Date() }}
@@ -216,6 +293,8 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
                 <input
                   id="booking-location"
                   type="text"
+                  value={location}
+                  onChange={(ev) => setLocation(ev.target.value)}
                   placeholder={bookingFormContent.locationPlaceholder}
                   className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111]"
                 />
@@ -228,8 +307,9 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
                 </label>
                 <select
                   id="booking-event-type"
+                  value={eventType}
+                  onChange={(ev) => setEventType(ev.target.value)}
                   className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111]"
-                  defaultValue=""
                 >
                   {bookingFormContent.eventTypeOptions.map((opt) => (
                     <option key={opt.value || 'empty'} value={opt.value}>
@@ -247,6 +327,9 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
                 <input
                   id="booking-guests"
                   type="number"
+                  min="1"
+                  value={guestCount}
+                  onChange={(ev) => setGuestCount(ev.target.value)}
                   placeholder={bookingFormContent.guestCountPlaceholder}
                   className="w-full px-4 py-3 border border-[#EAEAEA] rounded-lg focus:outline-none focus:border-[#111111]"
                 />
@@ -274,23 +357,37 @@ export function Landing({ onNavigateToGallery }: LandingProps) {
 
               <p className="text-[12px] text-[#6B6B6B] text-center">{bookingFormContent.trustLine}</p>
 
+              <div>
+                <RecaptchaField
+                  ref={recaptchaRef}
+                  siteKey={recaptchaSiteKey}
+                  onTokenChange={(token) => {
+                    setRecaptchaToken(token);
+                    if (token) {
+                      setRecaptchaError('');
+                    }
+                  }}
+                />
+                {recaptchaError ? <p className="text-[12px] text-red-500 mt-2">{recaptchaError}</p> : null}
+              </div>
+
+              {submitError ? <p className="text-[12px] text-red-500">{submitError}</p> : null}
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEmailError('');
-                    setPhoneError('');
-                  }}
-                  className="flex-1 px-6 py-3 border border-[#EAEAEA] text-[#111111] rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={closeBookingForm}
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 border border-[#EAEAEA] text-[#111111] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
                 >
                   {bookingFormContent.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-[#111111] text-white rounded-lg hover:bg-black transition-colors"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 bg-[#111111] text-white rounded-lg hover:bg-black transition-colors disabled:opacity-60"
                 >
-                  {bookingFormContent.submit}
+                  {submitting ? bookingFormContent.submitting : bookingFormContent.submit}
                 </button>
               </div>
             </form>

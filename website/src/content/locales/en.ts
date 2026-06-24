@@ -34,6 +34,7 @@ export const en = {
     trustLine: 'We will respond within 24 hours.',
     cancel: 'Cancel',
     submit: 'Send Request',
+    submitting: 'Sending...',
     closeCalendarAriaLabel: 'Close calendar',
     eventTypeOptions: [
       { value: '', label: 'Select type' },
@@ -48,6 +49,9 @@ export const en = {
   formValidationMessages: {
     emailInvalid: 'Please enter a valid email',
     phoneInvalid: 'Please enter a valid phone number',
+    dateRequired: 'Please select an event date',
+    recaptchaRequired: 'Please complete the reCAPTCHA check',
+    submitFailed: 'Could not send your request. Please try WhatsApp or email.',
   },
 
   successToastContent: {

@@ -118,15 +118,33 @@ function buildTlsOptions(env, host) {
   return secureOptions;
 }
 
+function validateFtpCredentials(env, log) {
+  const user = requireEnv(env, 'FTP_USER');
+  const password = requireEnv(env, 'FTP_PASSWORD');
+
+  if (password.includes('FTP_') || password.includes('REMOTE_DIR')) {
+    throw new Error(
+      'FTP_PASSWORD looks malformed — it may include the next .env line. Put FTP_PASSWORD and FTP_REMOTE_DIR on separate lines.',
+    );
+  }
+
+  log(`FTP user: ${user}`);
+  log(`FTP password length: ${password.length} character(s)`);
+
+  return { user, password };
+}
+
 function formatFtpError(error, host) {
   const message = error instanceof Error ? error.message : 'FTP upload failed.';
   const hints = [];
 
-  if (isIpv4Host(host)) {
-    hints.push('Use the FTP hostname from Webhouse SETUP, not the IP address.');
-  }
-  if (message.includes('certificate') || message.includes('altnames')) {
+  if (message.includes('530') || message.toLowerCase().includes('login incorrect')) {
+    hints.push('Wrong FTP_USER or FTP_PASSWORD — copy exactly from Total Commander / Webhouse SETUP.');
+    hints.push('Check .env.local: one variable per line, no spaces around =, quote passwords with special chars.');
+  } else if (message.includes('certificate') || message.includes('altnames')) {
     hints.push('Use plain FTP: FTP_SECURE_MODE=plain (same as Total Commander without TLS).');
+  } else if (isIpv4Host(host)) {
+    hints.push('If connection fails, try the FTP hostname from Webhouse SETUP instead of the IP.');
   }
 
   if (hints.length === 0) {
@@ -138,8 +156,7 @@ function formatFtpError(error, host) {
 
 async function uploadDist(env, log) {
   const host = requireEnv(env, 'FTP_HOST');
-  const user = requireEnv(env, 'FTP_USER');
-  const password = requireEnv(env, 'FTP_PASSWORD');
+  const { user, password } = validateFtpCredentials(env, log);
   const remoteDir = requireEnv(env, 'FTP_REMOTE_DIR');
   const secure = resolveSecureMode(env);
   const port = env.FTP_PORT ? Number(env.FTP_PORT) : undefined;

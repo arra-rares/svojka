@@ -1,5 +1,7 @@
 node_modules
 dist
 logs
+data/leads.jsonl
+public/api/logs/*.jsonl
 *.local
 .DS_Store

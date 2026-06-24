@@ -35,6 +35,7 @@ export const sk: SiteContent = {
     trustLine: 'Ozveme sa do 24 hodín.',
     cancel: 'Zrušiť',
     submit: 'Odoslať dopyt',
+    submitting: 'Odosiela sa...',
     closeCalendarAriaLabel: 'Zavrieť kalendár',
     eventTypeOptions: [
       { value: '', label: 'Vyberte typ' },
@@ -49,6 +50,9 @@ export const sk: SiteContent = {
   formValidationMessages: {
     emailInvalid: 'Zadajte platný e-mail',
     phoneInvalid: 'Zadajte platné telefónne číslo',
+    dateRequired: 'Vyberte dátum podujatia',
+    recaptchaRequired: 'Dokončite overenie reCAPTCHA',
+    submitFailed: 'Požiadavku sa nepodarilo odoslať. Skúste WhatsApp alebo e-mail.',
   },
 
   successToastContent: {
