@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-function leadRespond(int $statusCode, array $payload): void
+function leadRespond(int $statusCode, array $payload)
 {
     http_response_code($statusCode);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE);
@@ -101,7 +101,7 @@ function leadIsHoneypotTriggered(array $body): bool
     return leadCleanString($body['company_website'] ?? '', 200) !== '';
 }
 
-function leadVerifyRecaptcha(array $config, string $token): void
+function leadVerifyRecaptcha(array $config, string $token)
 {
     $secret = trim($config['recaptcha_secret_key'] ?? '');
     if ($secret === '') {
