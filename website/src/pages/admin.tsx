@@ -59,6 +59,7 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
   const [deploying, setDeploying] = useState(false);
   const [deployMessage, setDeployMessage] = useState('');
   const [deployError, setDeployError] = useState('');
+  const [deployLogs, setDeployLogs] = useState<string[]>([]);
 
   const isEditing = Boolean(form.id);
 
@@ -219,13 +220,65 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
     setDeploying(true);
     setDeployMessage('');
     setDeployError('');
+    setDeployLogs([]);
+
     try {
       const response = await fetch('/api/admin/deploy', { method: 'POST' });
-      const data = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
-      if (!response.ok) {
-        throw new Error(data.error ?? 'Upload failed.');
+      const contentType = response.headers.get('content-type') ?? '';
+
+      if (!response.ok && contentType.includes('application/json')) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? `Upload failed (${response.status}).`);
       }
-      setDeployMessage(data.message ?? 'Website uploaded.');
+
+      if (!response.body) {
+        throw new Error('No response body from deploy endpoint.');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finished = false;
+
+      while (!finished) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: { type: string; text?: string; ok?: boolean; error?: string };
+          try {
+            event = JSON.parse(line) as { type: string; text?: string; ok?: boolean; error?: string };
+          } catch {
+            setDeployLogs((prev) => [...prev, line]);
+            continue;
+          }
+
+          if (event.type === 'log' || event.type === 'error') {
+            if (event.text) {
+              setDeployLogs((prev) => [...prev, event.text as string]);
+            }
+            continue;
+          }
+
+          if (event.type === 'done') {
+            finished = true;
+            if (event.ok) {
+              setDeployMessage(event.text ?? 'Website uploaded.');
+            } else {
+              setDeployError(event.error ?? 'Upload failed.');
+            }
+          }
+        }
+      }
+
+      if (!finished && !response.ok) {
+        throw new Error(`Upload failed (${response.status}).`);
+      }
     } catch (err) {
       setDeployError(err instanceof Error ? err.message : 'Upload failed.');
     } finally {
@@ -291,23 +344,44 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-[#EAEAEA] p-5 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-[18px] font-medium text-[#111111]">Publish website</h2>
-            <p className="text-[13px] text-[#6B6B6B]">
-              Builds the site and uploads it to Webhouse. Do this after you add or edit events.
-            </p>
-            {deployMessage ? <p className="text-[12px] text-[#2E7D32] mt-2">{deployMessage}</p> : null}
-            {deployError ? <p className="text-[12px] text-red-500 mt-2">{deployError}</p> : null}
+        <div className="bg-white rounded-xl border border-[#EAEAEA] p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-[18px] font-medium text-[#111111]">Publish website</h2>
+              <p className="text-[13px] text-[#6B6B6B]">
+                Builds the site and uploads it to Webhouse. Do this after you add or edit events.
+              </p>
+              {deployMessage ? <p className="text-[12px] text-[#2E7D32] mt-2">{deployMessage}</p> : null}
+              {deployError ? <p className="text-[12px] text-red-500 mt-2">{deployError}</p> : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleDeploy()}
+              disabled={deploying}
+              className="px-5 py-3 bg-[#111111] text-white rounded-lg hover:bg-black disabled:opacity-60"
+            >
+              {deploying ? 'Uploading...' : 'Upload to website'}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => void handleDeploy()}
-            disabled={deploying}
-            className="px-5 py-3 bg-[#111111] text-white rounded-lg hover:bg-black disabled:opacity-60"
-          >
-            {deploying ? 'Uploading...' : 'Upload to website'}
-          </button>
+
+          {deploying || deployLogs.length > 0 ? (
+            <div>
+              <div className="text-[12px] text-[#6B6B6B] mb-2">
+                Deploy log {deploying ? '(running...)' : ''}
+              </div>
+              <pre className="max-h-[280px] overflow-auto rounded-lg bg-[#111111] text-[#EAEAEA] text-[11px] leading-5 p-3 whitespace-pre-wrap">
+                {deployLogs.length > 0
+                  ? deployLogs.join('\n')
+                  : deploying
+                    ? 'Waiting for deploy output...'
+                    : ''}
+              </pre>
+              <p className="text-[11px] text-[#6B6B6B] mt-2">
+                Full log is also saved to <code>website/logs/deploy-latest.log</code> and printed in the
+                terminal window.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6">

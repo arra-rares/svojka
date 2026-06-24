@@ -8,6 +8,27 @@ import { loadEnv } from 'vite';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const websiteRoot = path.resolve(__dirname, '..');
 const distDir = path.join(websiteRoot, 'dist');
+const logFilePath = path.join(websiteRoot, 'logs', 'deploy-latest.log');
+
+function timestamp() {
+  return new Date().toISOString().slice(11, 19);
+}
+
+function createLogger() {
+  const lines = [];
+  const log = (message) => {
+    const line = `[${timestamp()}] ${message}`;
+    lines.push(line);
+    console.log(line);
+  };
+  return { log, lines };
+}
+
+function loadDeployEnv() {
+  const env = loadEnv('development', websiteRoot, '');
+  Object.assign(process.env, env);
+  return env;
+}
 
 function requireEnv(env, key) {
   const value = env[key]?.trim();
@@ -33,53 +54,129 @@ function collectFiles(dirPath, baseDir = dirPath) {
   return files;
 }
 
-async function uploadDist(env) {
+function resolveSecureMode(env) {
+  const mode = (env.FTP_SECURE_MODE ?? 'explicit').trim().toLowerCase();
+  if (mode === 'false' || mode === 'off' || mode === 'plain') {
+    return false;
+  }
+  if (mode === 'implicit') {
+    return 'implicit';
+  }
+  return true;
+}
+
+function appendBuildOutput(log, output) {
+  if (!output?.trim()) {
+    return;
+  }
+  for (const line of output.split(/\r?\n/)) {
+    if (line.trim()) {
+      log(`build | ${line}`);
+    }
+  }
+}
+
+function runBuild(log) {
+  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  log(`Running ${npm} run build in ${websiteRoot}`);
+
+  try {
+    const output = execSync(`${npm} run build`, {
+      cwd: websiteRoot,
+      encoding: 'utf8',
+      env: process.env,
+      shell: process.platform === 'win32',
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    appendBuildOutput(log, output);
+    log('Build finished successfully.');
+  } catch (error) {
+    appendBuildOutput(log, error.stdout?.toString() ?? '');
+    appendBuildOutput(log, error.stderr?.toString() ?? '');
+    const code = error.status ?? 'unknown';
+    throw new Error(`Build failed (exit ${code}). See log above for details.`);
+  }
+}
+
+async function uploadDist(env, log) {
   const host = requireEnv(env, 'FTP_HOST');
   const user = requireEnv(env, 'FTP_USER');
   const password = requireEnv(env, 'FTP_PASSWORD');
   const remoteDir = requireEnv(env, 'FTP_REMOTE_DIR');
-  const secure = (env.FTP_SECURE ?? 'true').toLowerCase() !== 'false';
+  const secure = resolveSecureMode(env);
   const port = env.FTP_PORT ? Number(env.FTP_PORT) : undefined;
+  const rejectUnauthorized = (env.FTP_TLS_REJECT_UNAUTHORIZED ?? 'true').toLowerCase() !== 'false';
 
   if (!fs.existsSync(distDir)) {
-    throw new Error('Build output missing. Run npm run build first.');
+    throw new Error(`Build output missing at ${distDir}`);
   }
 
+  const files = collectFiles(distDir);
+  log(`Found ${files.length} file(s) in dist/.`);
+  log(`Connecting to FTP ${host}${port ? `:${port}` : ''} as ${user} (secure=${String(secure)})`);
+  log(`Remote directory: ${remoteDir}`);
+
   const client = new Client(120_000);
-  client.ftp.verbose = false;
+  client.ftp.log = (message) => log(`ftp | ${message}`);
 
-  await client.access({
-    host,
-    user,
-    password,
-    secure,
-    port,
-  });
+  try {
+    await client.access({
+      host,
+      user,
+      password,
+      secure,
+      port,
+      secureOptions: {
+        rejectUnauthorized,
+      },
+    });
+    log('FTP connection established.');
 
-  await client.ensureDir(remoteDir);
-  await client.cd(remoteDir);
-  await client.uploadFromDir(distDir);
+    await client.ensureDir(remoteDir);
+    log(`Ensured remote directory exists: ${remoteDir}`);
 
-  const fileCount = collectFiles(distDir).length;
-  client.close();
-  return fileCount;
+    await client.cd(remoteDir);
+    const pwd = await client.pwd();
+    log(`Remote working directory: ${pwd}`);
+
+    log('Uploading dist/ contents...');
+    await client.uploadFromDir(distDir);
+    log(`Upload complete (${files.length} file(s)).`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'FTP upload failed.';
+    throw new Error(`FTP upload failed: ${message}`);
+  } finally {
+    client.close();
+  }
+
+  return files.length;
 }
 
-function runBuild() {
-  execSync('npm run build', {
-    cwd: websiteRoot,
-    stdio: 'inherit',
-    env: process.env,
-  });
+function writeLogFile(lines) {
+  fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+  fs.writeFileSync(logFilePath, `${lines.join('\n')}\n`, 'utf8');
+  return logFilePath;
 }
 
 async function main() {
-  const env = loadEnv('development', websiteRoot, '');
-  console.log('Building site...');
-  runBuild();
-  console.log('Uploading to Webhouse via FTP...');
-  const uploadedCount = await uploadDist(env);
-  console.log(`Upload complete (${uploadedCount} file(s)).`);
+  const { log, lines } = createLogger();
+  const env = loadDeployEnv();
+
+  try {
+    log('Deploy started.');
+    log(`Platform: ${process.platform}`);
+    runBuild(log);
+    log('Uploading to Webhouse via FTP...');
+    const uploadedCount = await uploadDist(env, log);
+    log(`Deploy finished successfully (${uploadedCount} file(s) uploaded).`);
+    const savedLogPath = writeLogFile(lines);
+    log(`Log saved to ${savedLogPath}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Deploy failed.';
+    log(`ERROR: ${message}`);
+    writeLogFile(lines);
+    throw error;
+  }
 }
 
 main().catch((error) => {

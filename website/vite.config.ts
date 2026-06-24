@@ -226,30 +226,67 @@ function requireFtpConfig(env: Record<string, string>) {
   }
 }
 
-function runDeployScript() {
-  return new Promise<string>((resolve, reject) => {
+function writeDeployEvent(
+  res,
+  event: { type: string; text?: string; ok?: boolean; error?: string },
+) {
+  res.write(`${JSON.stringify(event)}\n`);
+  if (event.text) {
+    console.log(`[deploy] ${event.text}`);
+  } else if (event.error) {
+    console.error(`[deploy] ${event.error}`);
+  }
+}
+
+function streamDeployScript(res, env: Record<string, string>) {
+  return new Promise<void>((resolve, reject) => {
     const scriptPath = path.resolve(__dirname, 'scripts/deploy-ftp.mjs');
+    const childEnv = { ...process.env, ...env };
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    writeDeployEvent(res, { type: 'log', text: 'Starting deploy process...' });
+
     const child = spawn(process.execPath, [scriptPath], {
       cwd: __dirname,
-      env: process.env,
+      env: childEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    let output = '';
-    child.stdout.on('data', (chunk: Buffer) => {
-      output += chunk.toString('utf8');
+    const forwardOutput = (chunk: Buffer, type: 'log' | 'error') => {
+      const text = chunk.toString('utf8');
+      for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        writeDeployEvent(res, { type, text: line });
+      }
+    };
+
+    child.stdout.on('data', (chunk: Buffer) => forwardOutput(chunk, 'log'));
+    child.stderr.on('data', (chunk: Buffer) => forwardOutput(chunk, 'error'));
+    child.on('error', (error) => {
+      const message = error instanceof Error ? error.message : 'Failed to start deploy.';
+      writeDeployEvent(res, { type: 'done', ok: false, error: message });
+      res.end();
+      reject(error);
     });
-    child.stderr.on('data', (chunk: Buffer) => {
-      output += chunk.toString('utf8');
-    });
-    child.on('error', reject);
     child.on('close', (code) => {
-      const trimmed = output.trim();
       if (code === 0) {
-        resolve(trimmed || 'Website uploaded successfully.');
+        writeDeployEvent(res, {
+          type: 'done',
+          ok: true,
+          text: 'Website uploaded successfully.',
+        });
+        res.end();
+        resolve();
         return;
       }
-      reject(new Error(trimmed || 'Deploy failed.'));
+      const message = `Deploy process exited with code ${code ?? 'unknown'}.`;
+      writeDeployEvent(res, { type: 'done', ok: false, error: message });
+      res.end();
+      reject(new Error(message));
     });
   });
 }
@@ -311,14 +348,22 @@ function createAdminApiPlugin(adminPasswordFromEnv: string | undefined, env: Rec
                 sendJson(res, 409, { error: 'Upload already in progress.' });
                 return;
               }
-              requireFtpConfig(env);
+              try {
+                requireFtpConfig(env);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Missing FTP settings.';
+                sendJson(res, 400, { error: message });
+                return;
+              }
+
               deployInProgress = true;
               try {
-                const message = await runDeployScript();
-                sendJson(res, 200, { ok: true, message });
+                await streamDeployScript(res, env);
               } catch (error) {
-                const message = error instanceof Error ? error.message : 'Deploy failed.';
-                sendJson(res, 500, { error: message });
+                if (!res.headersSent) {
+                  const message = error instanceof Error ? error.message : 'Deploy failed.';
+                  sendJson(res, 500, { error: message });
+                }
               } finally {
                 deployInProgress = false;
               }

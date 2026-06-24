@@ -48,3 +48,6 @@ Upload can take a few minutes. Do not close the window during upload.
 | "Missing .env.local" | Copy `.env.example` → `.env.local` and fill in values |
 | Tailwind native binding error | Delete `website/node_modules`, run `npm install` inside `website/` |
 | Upload fails | Verify FTP host/user/password/path in Webhouse panel |
+| Need more detail | Check the deploy log panel in admin, the terminal window, or `website/logs/deploy-latest.log` |
+| TLS / certificate error | Try `FTP_TLS_REJECT_UNAUTHORIZED=false` in `.env.local` |
+| Connection timeout | Try `FTP_SECURE_MODE=implicit` and `FTP_PORT=990`, or `FTP_SECURE_MODE=plain` |
