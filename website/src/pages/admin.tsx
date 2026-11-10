@@ -26,21 +26,55 @@ type AdminPageProps = {
   onBackHome: () => void;
 };
 
-function readFileAsBase64(file: File): Promise<string> {
+const SAVE_TIMEOUT_MS = 90_000;
+const COVER_MAX_EDGE = 1600;
+const COVER_JPEG_QUALITY = 0.82;
+
+function loadImageElement(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Unable to read image file.'));
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result !== 'string') {
-        reject(new Error('Unexpected file reader output.'));
-        return;
-      }
-      const comma = result.indexOf(',');
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
     };
-    reader.readAsDataURL(file);
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Unable to read image file.'));
+    };
+    image.src = url;
   });
+}
+
+async function prepareCoverImageUpload(file: File): Promise<{
+  fileName: string;
+  mimeType: string;
+  dataBase64: string;
+}> {
+  const image = await loadImageElement(file);
+  const scale = Math.min(1, COVER_MAX_EDGE / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Unable to process cover image.');
+  }
+  context.drawImage(image, 0, 0, width, height);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', COVER_JPEG_QUALITY);
+  const comma = dataUrl.indexOf(',');
+  const dataBase64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const baseName = file.name.replace(/\.[^.]+$/, '') || 'cover';
+
+  return {
+    fileName: `${baseName}.jpg`,
+    mimeType: 'image/jpeg',
+    dataBase64,
+  };
 }
 
 /** Easy-to-read guest passwords (no 0/O/1/l ambiguity). */
@@ -66,6 +100,7 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [replaceImage, setReplaceImage] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState('');
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
   const [deploying, setDeploying] = useState(false);
@@ -165,9 +200,16 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
+    const editing = isEditing;
+    const eventId = form.id;
     setSaving(true);
+    setSavingStatus('Preparing...');
     setError('');
     setFeedback('');
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), SAVE_TIMEOUT_MS);
+
     try {
       const payload: Record<string, unknown> = {
         name: form.name.trim(),
@@ -179,34 +221,40 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
       };
 
       if (coverImageFile) {
-        payload.coverImageUpload = {
-          fileName: coverImageFile.name,
-          mimeType: coverImageFile.type,
-          dataBase64: await readFileAsBase64(coverImageFile),
-        };
+        setSavingStatus('Compressing cover image...');
+        payload.coverImageUpload = await prepareCoverImageUpload(coverImageFile);
         payload.replaceCoverImage = true;
       } else if (replaceImage) {
         throw new Error('Select an image file to replace the current cover image.');
       }
 
-      const endpoint = isEditing ? `/api/admin/events/${form.id}` : '/api/admin/events';
-      const method = isEditing ? 'PUT' : 'POST';
+      const endpoint = editing ? `/api/admin/events/${eventId}` : '/api/admin/events';
+      const method = editing ? 'PUT' : 'POST';
+      setSavingStatus('Saving event...');
       const response = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error ?? 'Save failed.');
       }
+      setSavingStatus('Refreshing list...');
       await loadEvents();
       resetForm();
-      setFeedback(isEditing ? 'Event updated.' : 'Event created.');
+      setFeedback(editing ? 'Event updated.' : 'Event created.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed.');
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Save timed out. Try a smaller cover image, then save again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Save failed.');
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setSaving(false);
+      setSavingStatus('');
     }
   }
 
@@ -533,6 +581,10 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
                 className="w-full text-[13px]"
                 required={!isEditing}
               />
+              <p className="text-[11px] text-[#6B6B6B]">
+                Cover images are resized on upload (max {COVER_MAX_EDGE}px, JPEG) so large phone
+                photos do not freeze save.
+              </p>
 
               {error ? <div className="text-[12px] text-red-500">{error}</div> : null}
               {feedback ? <div className="text-[12px] text-[#2E7D32]">{feedback}</div> : null}
@@ -543,7 +595,11 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
                   disabled={saving}
                   className="px-4 py-2 bg-[#111111] text-white rounded-lg hover:bg-black disabled:opacity-60"
                 >
-                  {saving ? 'Saving...' : isEditing ? 'Save changes' : 'Create event'}
+                  {saving
+                    ? savingStatus || 'Saving...'
+                    : isEditing
+                      ? 'Save changes'
+                      : 'Create event'}
                 </button>
                 <button
                   type="button"

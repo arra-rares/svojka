@@ -56,7 +56,16 @@ function readGalleryData(): GalleryDataFile {
 }
 
 function writeGalleryData(data: GalleryDataFile) {
-  fs.writeFileSync(dataFilePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  const payload = `${JSON.stringify(data, null, 2)}\n`;
+  const tempPath = `${dataFilePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, payload, 'utf8');
+  try {
+    fs.renameSync(tempPath, dataFilePath);
+  } catch {
+    // Windows often cannot rename over an existing file.
+    fs.copyFileSync(tempPath, dataFilePath);
+    fs.unlinkSync(tempPath);
+  }
 }
 
 function parseCookies(req): Record<string, string> {
@@ -84,20 +93,35 @@ function sendJson(res, statusCode: number, payload: unknown) {
 function parseBody(req): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
-    req.on('end', () => {
-      if (chunks.length === 0) {
-        resolve({});
-        return;
-      }
-      try {
-        const text = Buffer.concat(chunks).toString('utf8');
-        resolve(text ? JSON.parse(text) : {});
-      } catch (error) {
-        reject(error);
-      }
+    let settled = false;
+
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      callback();
+    };
+
+    const onEnd = () => {
+      finish(() => {
+        try {
+          const text = Buffer.concat(chunks).toString('utf8');
+          resolve(text ? JSON.parse(text) : {});
+        } catch (error) {
+          reject(error);
+        }
+      });
+    };
+
+    req.on('data', (chunk: Buffer) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     });
-    req.on('error', reject);
+    req.on('end', onEnd);
+    req.on('error', (error: Error) => finish(() => reject(error)));
+
+    // Avoid hanging if the stream already finished before listeners attached.
+    if (req.readableEnded) {
+      onEnd();
+    }
   });
 }
 
