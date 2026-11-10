@@ -32,4 +32,18 @@ if not exist ".env.local" (
   exit /b 1
 )
 
+echo.
+echo Starting local server... Keep this window open.
+echo.
+
 node scripts\launch.mjs
+set "EXIT_CODE=%ERRORLEVEL%"
+
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo start-arra failed with code %EXIT_CODE%.
+  echo Read the messages above, then press any key to close.
+  echo.
+  pause
+  exit /b %EXIT_CODE%
+)
