@@ -1,9 +1,20 @@
 import type { GalleryEventPublic } from '@/types/gallery';
 
-const useStaticGallery = import.meta.env.PROD;
+/**
+ * Live Webhouse hosting has no Node gallery API.
+ * Use Vite `/api/gallery/*` only on local site manager (localhost).
+ * Everywhere else (production domain, preview IP, etc.) use static JSON.
+ */
+function useLocalGalleryApi(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1';
+}
 
 export async function fetchGalleryEvents(): Promise<GalleryEventPublic[]> {
-  if (!useStaticGallery) {
+  if (useLocalGalleryApi()) {
     const response = await fetch('/api/gallery/events');
     if (!response.ok) {
       throw new Error('Unable to load gallery events.');
@@ -24,7 +35,7 @@ export async function verifyGalleryAccess(
   eventId: string,
   password: string,
 ): Promise<string | null> {
-  if (!useStaticGallery) {
+  if (useLocalGalleryApi()) {
     const response = await fetch('/api/gallery/access', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
