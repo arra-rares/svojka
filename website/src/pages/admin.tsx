@@ -43,6 +43,18 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
+/** Easy-to-read guest passwords (no 0/O/1/l ambiguity). */
+function generateEventPassword(length = 8): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const values = new Uint32Array(length);
+  crypto.getRandomValues(values);
+  let password = '';
+  for (let i = 0; i < length; i += 1) {
+    password += alphabet[values[i]! % alphabet.length]!;
+  }
+  return password;
+}
+
 export function AdminPage({ onBackHome }: AdminPageProps) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
@@ -398,6 +410,12 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
                       <div className="text-[15px] font-medium text-[#111111]">{event.name}</div>
                       <div className="text-[12px] text-[#6B6B6B]">{event.date}</div>
                       <div className="text-[12px] text-[#6B6B6B]">{event.type}</div>
+                      <div className="text-[12px] text-[#111111] mt-1">
+                        Password:{' '}
+                        <code className="px-1.5 py-0.5 bg-[#F4F4F4] rounded text-[12px] font-medium tracking-wide">
+                          {event.password}
+                        </code>
+                      </div>
                     </div>
                     <span
                       className={`text-[11px] px-2 py-1 rounded ${
@@ -465,13 +483,24 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
                 className="w-full px-3 py-2 border border-[#EAEAEA] rounded-lg"
                 required
               />
-              <input
-                value={form.password}
-                onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-                placeholder="Event password"
-                className="w-full px-3 py-2 border border-[#EAEAEA] rounded-lg"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  value={form.password}
+                  onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder="Event password"
+                  className="min-w-0 flex-1 px-3 py-2 border border-[#EAEAEA] rounded-lg font-mono tracking-wide"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, password: generateEventPassword() }))
+                  }
+                  className="shrink-0 px-3 py-2 border border-[#EAEAEA] rounded-lg text-[12px] hover:bg-[#FAFAFA]"
+                >
+                  Generate
+                </button>
+              </div>
               <input
                 value={form.fotoshareUrl}
                 onChange={(e) => setForm((prev) => ({ ...prev, fotoshareUrl: e.target.value }))}
