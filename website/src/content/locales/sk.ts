@@ -133,9 +133,9 @@ export const sk: SiteContent = {
       {
         id: 'fog',
         imageSrc: serviceImageUrls.lowFog,
-        imageAlt: 'Nízka hmla',
+        imageAlt: 'Plazivý dym',
         icon: 'zap' as const,
-        title: 'Nízka hmla',
+        title: 'Plazivý dym',
         description: 'Efekt hmly na parkete pre magickú atmosféru',
         detailBullets: [
           'Hustá hmla drží pri zemi',
@@ -214,7 +214,7 @@ export const sk: SiteContent = {
           price: 'od 120€',
         },
         {
-          name: 'Nízka hmla',
+          name: 'Plazivý dym',
           note: '60€ s Fotokútikom / 360',
           price: 'od 120€',
         },
@@ -336,7 +336,7 @@ export const sk: SiteContent = {
     },
     servicesColumn: {
       title: 'Služby',
-      items: ['Fotokútik', 'Video 360', 'Pyrotechnika', 'Nízka hmla', 'Telefón do knihy hostí'],
+      items: ['Fotokútik', 'Video 360', 'Pyrotechnika', 'Plazivý dym', 'Telefón do knihy hostí'],
     },
     legalColumn: {
       title: 'Právne informácie',
