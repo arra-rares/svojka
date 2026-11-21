@@ -2,7 +2,6 @@ node_modules
 dist
 logs
 data/leads.jsonl
-data/backups/
 public/api/logs/*.jsonl
 *.local
 .DS_Store

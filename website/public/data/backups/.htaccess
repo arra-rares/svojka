@@ -1,0 +1,7 @@
+# Gallery backup JSON can include event passwords — deny web access.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Deny from all
+</IfModule>
