@@ -35,6 +35,7 @@ const authCookieName = 'arra_admin_auth';
 const allowedImageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 let activeAdminSessionToken = '';
 let deployInProgress = false;
+let pullInProgress = false;
 
 function ensureStorage() {
   if (!fs.existsSync(path.dirname(dataFilePath))) {
@@ -263,9 +264,18 @@ function writeDeployEvent(
   }
 }
 
-function streamDeployScript(res, env: Record<string, string>) {
+function streamNodeScript(
+  res,
+  env: Record<string, string>,
+  options: {
+    scriptRelativePath: string;
+    startText: string;
+    successText: string;
+    failLabel: string;
+  },
+) {
   return new Promise<void>((resolve, reject) => {
-    const scriptPath = path.resolve(__dirname, 'scripts/deploy-ftp.mjs');
+    const scriptPath = path.resolve(__dirname, options.scriptRelativePath);
     const childEnv = { ...process.env, ...env };
 
     res.statusCode = 200;
@@ -273,7 +283,7 @@ function streamDeployScript(res, env: Record<string, string>) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    writeDeployEvent(res, { type: 'log', text: 'Starting deploy process...' });
+    writeDeployEvent(res, { type: 'log', text: options.startText });
 
     const child = spawn(process.execPath, [scriptPath], {
       cwd: __dirname,
@@ -292,7 +302,7 @@ function streamDeployScript(res, env: Record<string, string>) {
     child.stdout.on('data', (chunk: Buffer) => forwardOutput(chunk, 'log'));
     child.stderr.on('data', (chunk: Buffer) => forwardOutput(chunk, 'error'));
     child.on('error', (error) => {
-      const message = error instanceof Error ? error.message : 'Failed to start deploy.';
+      const message = error instanceof Error ? error.message : `Failed to start ${options.failLabel}.`;
       writeDeployEvent(res, { type: 'done', ok: false, error: message });
       res.end();
       reject(error);
@@ -302,17 +312,35 @@ function streamDeployScript(res, env: Record<string, string>) {
         writeDeployEvent(res, {
           type: 'done',
           ok: true,
-          text: 'Website uploaded successfully.',
+          text: options.successText,
         });
         res.end();
         resolve();
         return;
       }
-      const message = `Deploy process exited with code ${code ?? 'unknown'}.`;
+      const message = `${options.failLabel} process exited with code ${code ?? 'unknown'}.`;
       writeDeployEvent(res, { type: 'done', ok: false, error: message });
       res.end();
       reject(new Error(message));
     });
+  });
+}
+
+function streamDeployScript(res, env: Record<string, string>) {
+  return streamNodeScript(res, env, {
+    scriptRelativePath: 'scripts/deploy-ftp.mjs',
+    startText: 'Starting deploy process...',
+    successText: 'Website uploaded successfully.',
+    failLabel: 'Deploy',
+  });
+}
+
+function streamPullGalleryScript(res, env: Record<string, string>) {
+  return streamNodeScript(res, env, {
+    scriptRelativePath: 'scripts/pull-gallery.mjs',
+    startText: 'Starting gallery pull from website...',
+    successText: 'Gallery downloaded from website.',
+    failLabel: 'Pull',
   });
 }
 
@@ -435,8 +463,8 @@ function createAdminApiPlugin(adminPasswordFromEnv: string | undefined, env: Rec
             }
 
             if (pathname === '/api/admin/deploy' && req.method === 'POST') {
-              if (deployInProgress) {
-                sendJson(res, 409, { error: 'Upload already in progress.' });
+              if (deployInProgress || pullInProgress) {
+                sendJson(res, 409, { error: 'Another FTP operation is already in progress.' });
                 return;
               }
               try {
@@ -457,6 +485,33 @@ function createAdminApiPlugin(adminPasswordFromEnv: string | undefined, env: Rec
                 }
               } finally {
                 deployInProgress = false;
+              }
+              return;
+            }
+
+            if (pathname === '/api/admin/pull-gallery' && req.method === 'POST') {
+              if (deployInProgress || pullInProgress) {
+                sendJson(res, 409, { error: 'Another FTP operation is already in progress.' });
+                return;
+              }
+              try {
+                requireFtpConfig(env);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Missing FTP settings.';
+                sendJson(res, 400, { error: message });
+                return;
+              }
+
+              pullInProgress = true;
+              try {
+                await streamPullGalleryScript(res, env);
+              } catch (error) {
+                if (!res.headersSent) {
+                  const message = error instanceof Error ? error.message : 'Pull failed.';
+                  sendJson(res, 500, { error: message });
+                }
+              } finally {
+                pullInProgress = false;
               }
               return;
             }

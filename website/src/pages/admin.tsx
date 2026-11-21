@@ -104,6 +104,7 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
   const [deploying, setDeploying] = useState(false);
+  const [pulling, setPulling] = useState(false);
   const [deployMessage, setDeployMessage] = useState('');
   const [deployError, setDeployError] = useState('');
   const [deployLogs, setDeployLogs] = useState<string[]>([]);
@@ -271,6 +272,78 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
     setFeedback('Event hidden.');
   }
 
+  async function runFtpStream(options: {
+    endpoint: string;
+    busyLabel: string;
+    successFallback: string;
+    failureFallback: string;
+    onSuccess?: () => Promise<void>;
+  }) {
+    setDeployMessage('');
+    setDeployError('');
+    setDeployLogs([]);
+
+    const response = await fetch(options.endpoint, { method: 'POST' });
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (!response.ok && contentType.includes('application/json')) {
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(data.error ?? `${options.failureFallback} (${response.status}).`);
+    }
+
+    if (!response.body) {
+      throw new Error(`No response body from ${options.busyLabel} endpoint.`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let finished = false;
+
+    while (!finished) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let event: { type: string; text?: string; ok?: boolean; error?: string };
+        try {
+          event = JSON.parse(line) as { type: string; text?: string; ok?: boolean; error?: string };
+        } catch {
+          setDeployLogs((prev) => [...prev, line]);
+          continue;
+        }
+
+        if (event.type === 'log' || event.type === 'error') {
+          if (event.text) {
+            setDeployLogs((prev) => [...prev, event.text as string]);
+          }
+          continue;
+        }
+
+        if (event.type === 'done') {
+          finished = true;
+          if (event.ok) {
+            setDeployMessage(event.text ?? options.successFallback);
+            if (options.onSuccess) {
+              await options.onSuccess();
+            }
+          } else {
+            setDeployError(event.error ?? options.failureFallback);
+          }
+        }
+      }
+    }
+
+    if (!finished && !response.ok) {
+      throw new Error(`${options.failureFallback} (${response.status}).`);
+    }
+  }
+
   async function handleDeploy() {
     const confirmed = window.confirm(
       'Build and upload the live website to Webhouse?\n\nThis can take a few minutes. Keep this window open.',
@@ -278,71 +351,42 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
     if (!confirmed) return;
 
     setDeploying(true);
-    setDeployMessage('');
-    setDeployError('');
-    setDeployLogs([]);
-
     try {
-      const response = await fetch('/api/admin/deploy', { method: 'POST' });
-      const contentType = response.headers.get('content-type') ?? '';
-
-      if (!response.ok && contentType.includes('application/json')) {
-        const data = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? `Upload failed (${response.status}).`);
-      }
-
-      if (!response.body) {
-        throw new Error('No response body from deploy endpoint.');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let finished = false;
-
-      while (!finished) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          let event: { type: string; text?: string; ok?: boolean; error?: string };
-          try {
-            event = JSON.parse(line) as { type: string; text?: string; ok?: boolean; error?: string };
-          } catch {
-            setDeployLogs((prev) => [...prev, line]);
-            continue;
-          }
-
-          if (event.type === 'log' || event.type === 'error') {
-            if (event.text) {
-              setDeployLogs((prev) => [...prev, event.text as string]);
-            }
-            continue;
-          }
-
-          if (event.type === 'done') {
-            finished = true;
-            if (event.ok) {
-              setDeployMessage(event.text ?? 'Website uploaded.');
-            } else {
-              setDeployError(event.error ?? 'Upload failed.');
-            }
-          }
-        }
-      }
-
-      if (!finished && !response.ok) {
-        throw new Error(`Upload failed (${response.status}).`);
-      }
+      await runFtpStream({
+        endpoint: '/api/admin/deploy',
+        busyLabel: 'deploy',
+        successFallback: 'Website uploaded.',
+        failureFallback: 'Upload failed',
+      });
     } catch (err) {
       setDeployError(err instanceof Error ? err.message : 'Upload failed.');
     } finally {
       setDeploying(false);
+    }
+  }
+
+  async function handlePullGallery() {
+    const confirmed = window.confirm(
+      'Download gallery from the live website?\n\nThis overwrites local gallery.json, public gallery JSON, and cover images with what is currently on the server.',
+    );
+    if (!confirmed) return;
+
+    setPulling(true);
+    try {
+      await runFtpStream({
+        endpoint: '/api/admin/pull-gallery',
+        busyLabel: 'pull',
+        successFallback: 'Gallery downloaded from website.',
+        failureFallback: 'Download failed',
+        onSuccess: async () => {
+          await loadEvents();
+          resetForm();
+        },
+      });
+    } catch (err) {
+      setDeployError(err instanceof Error ? err.message : 'Download failed.');
+    } finally {
+      setPulling(false);
     }
   }
 
@@ -405,29 +449,40 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
         </div>
 
         <div className="bg-white rounded-xl border border-[#EAEAEA] p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-[18px] font-medium text-[#111111]">Publish website</h2>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[18px] font-medium text-[#111111]">Sync with website</h2>
               <p className="text-[13px] text-[#6B6B6B]">
-                Builds the site and uploads it to Webhouse. Do this after you add or edit events.
+                Upload publishes this PC to Webhouse. Download restores gallery data from the live
+                site (useful on a new computer).
               </p>
               {deployMessage ? <p className="text-[12px] text-[#2E7D32] mt-2">{deployMessage}</p> : null}
               {deployError ? <p className="text-[12px] text-red-500 mt-2">{deployError}</p> : null}
             </div>
-            <button
-              type="button"
-              onClick={() => void handleDeploy()}
-              disabled={deploying}
-              className="px-5 py-3 bg-[#111111] text-white rounded-lg hover:bg-black disabled:opacity-60"
-            >
-              {deploying ? 'Uploading...' : 'Upload to website'}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handlePullGallery()}
+                disabled={deploying || pulling}
+                className="px-5 py-3 border border-[#111111] text-[#111111] rounded-lg hover:bg-[#FAFAFA] disabled:opacity-60"
+              >
+                {pulling ? 'Downloading...' : 'Download from website'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeploy()}
+                disabled={deploying || pulling}
+                className="px-5 py-3 bg-[#111111] text-white rounded-lg hover:bg-black disabled:opacity-60"
+              >
+                {deploying ? 'Uploading...' : 'Upload to website'}
+              </button>
+            </div>
           </div>
 
-          {deploying || deployLogs.length > 0 ? (
+          {deploying || pulling || deployLogs.length > 0 ? (
             <div>
               <div className="text-[12px] text-[#6B6B6B] mb-2">
-                Deploy log {deploying ? '(running...)' : ''}
+                Sync log {deploying || pulling ? '(running...)' : ''}
               </div>
               <pre className="max-h-[280px] overflow-auto rounded-lg bg-[#111111] text-[#EAEAEA] text-[11px] leading-5 p-3 whitespace-pre-wrap">
                 {deployLogs.length > 0

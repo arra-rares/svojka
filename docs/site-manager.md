@@ -27,6 +27,16 @@ Default is **plain FTP on port 21, no TLS** — same as Total Commander without 
 
 Keep the black terminal window open while working. Closing it stops the local server.
 
+### New computer / restore from live site
+
+1. Clone/copy the project, install Node, create `website/.env.local` (same FTP + admin settings)
+2. Start admin (`start-arra.bat`)
+3. Click **Download from website**
+
+That pulls live `gallery-events.json` + `gallery-access.json`, rebuilds local `data/gallery.json`, and downloads cover images into `public/images/gallery/`.
+
+CLI alternative: `cd website` then `npm run pull-gallery`.
+
 ## What "Upload to website" does
 
 1. Builds the production site (`npm run build`)
