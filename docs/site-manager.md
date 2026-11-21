@@ -30,28 +30,28 @@ Keep the black terminal window open while working. Closing it stops the local se
 ## What "Upload to website" does
 
 1. Builds the production site (`npm run build`)
-2. On the **live host**, copies current gallery JSON into `data/backups/` (rolling, last 10)
-3. Uploads `website/dist/` to Webhouse via FTP
+2. On the **live host**, backs up current gallery JSON into `data/backups/` with a timestamp
+3. Uploads `website/dist/` to Webhouse via FTP (overwrites matching files)
 4. Live site updates — gallery, images, text changes included
 
 Upload can take a few minutes. Do not close the window during upload.
 
 ### Production gallery backups (rolling)
 
-Stored **on the server** (not on the PC):
+Stored **only on the server** (not kept on the PC):
 
-`/…/svojka/data/backups/`
+`data/backups/`
 
 | File pattern | Purpose |
 |--------------|---------|
-| `gallery-events.json.<stamp>.bak` | Last public event lists |
-| `gallery-access.json.<stamp>.bak` | Last passwords + Fotoshare URLs |
+| `gallery-events.json.<stamp>.bak` | Public event list snapshot |
+| `gallery-access.json.<stamp>.bak` | Passwords + Fotoshare URLs snapshot |
 
-- Kept: last **10** of each
-- Folder is blocked from the web (`.htaccess`)
-- If local gallery is **empty** but live has events, upload **keeps the live gallery** (does not wipe). To force empty: set `FTP_ALLOW_EMPTY_GALLERY=true` in `.env.local`
+- Kept: last **5** of each (older deleted on upload)
+- Folder blocked from the web (`.htaccess`)
+- No empty-gallery guard — upload always publishes the current local gallery
 
-**Restore via Total Commander:** copy a `.bak` from `data/backups/` over `data/gallery-events.json` / `data/gallery-access.json` (rename to drop the stamp).
+**Restore via Total Commander:** copy a `.bak` from `data/backups/` over `data/gallery-events.json` / `data/gallery-access.json` (drop the timestamp suffix).
 
 ## Booking form (leads)
 

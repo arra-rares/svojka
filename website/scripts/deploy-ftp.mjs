@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Client } from 'basic-ftp';
@@ -10,11 +11,9 @@ const websiteRoot = path.resolve(__dirname, '..');
 const distDir = path.join(websiteRoot, 'dist');
 const logFilePath = path.join(websiteRoot, 'logs', 'deploy-latest.log');
 const REMOTE_GALLERY_BACKUP_DIR = 'data/backups';
-const REMOTE_GALLERY_BACKUP_KEEP = 10;
+const REMOTE_GALLERY_BACKUP_KEEP = 5;
 const GALLERY_EVENTS_REMOTE = 'data/gallery-events.json';
 const GALLERY_ACCESS_REMOTE = 'data/gallery-access.json';
-const GALLERY_EVENTS_DIST = path.join(distDir, 'data/gallery-events.json');
-const GALLERY_ACCESS_DIST = path.join(distDir, 'data/gallery-access.json');
 const BACKUP_DENY_HTACCESS = path.join(
   websiteRoot,
   'public/data/backups/.htaccess',
@@ -221,24 +220,10 @@ async function uploadDist(env, log) {
 
     await ensureRemoteBackupProtection(client, log);
     await backupLiveGalleryOnServer(client, log);
-    const skippedGalleryFiles = await maybeProtectLiveGalleryFromEmptyUpload(client, log, env);
 
     log('Uploading dist/ contents...');
     await client.uploadFromDir(distDir);
     log(`Upload complete (${files.length} file(s)).`);
-
-    for (const name of skippedGalleryFiles) {
-      const asidePath = path.join(distDir, 'data', `${name}.skip-empty`);
-      if (fs.existsSync(asidePath)) {
-        fs.unlinkSync(asidePath);
-      }
-    }
-
-    if (skippedGalleryFiles.length > 0) {
-      log(
-        `Preserved live gallery files (not overwritten): ${skippedGalleryFiles.join(', ')}`,
-      );
-    }
   } catch (error) {
     throw new Error(`FTP upload failed: ${formatFtpError(error, host)}`);
   } finally {
@@ -250,18 +235,6 @@ async function uploadDist(env, log) {
 
 function stampForBackup() {
   return new Date().toISOString().replace(/[:.]/g, '-');
-}
-
-function readEventsCountFromJsonFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    return 0;
-  }
-  try {
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    return Array.isArray(data.events) ? data.events.length : 0;
-  } catch {
-    return 0;
-  }
 }
 
 async function ensureRemoteBackupProtection(client, log) {
@@ -288,16 +261,18 @@ async function pruneRemoteBackups(client, log, prefix) {
 }
 
 async function backupLiveGalleryOnServer(client, log) {
+  // Live host has public gallery JSON (not local admin gallery.json).
   const remoteFiles = [
     { remotePath: GALLERY_EVENTS_REMOTE, prefix: 'gallery-events.json' },
     { remotePath: GALLERY_ACCESS_REMOTE, prefix: 'gallery-access.json' },
   ];
-  const tempDir = path.join(websiteRoot, 'logs', 'deploy-tmp');
-  fs.mkdirSync(tempDir, { recursive: true });
   const stamp = stampForBackup();
 
   for (const file of remoteFiles) {
-    const tempPath = path.join(tempDir, `download-${file.prefix}`);
+    const tempPath = path.join(
+      os.tmpdir(),
+      `arra-gallery-backup-${process.pid}-${file.prefix}`,
+    );
     try {
       await client.downloadTo(tempPath, file.remotePath);
       const contents = fs.readFileSync(tempPath);
@@ -318,47 +293,6 @@ async function backupLiveGalleryOnServer(client, log) {
       }
     }
   }
-}
-
-async function maybeProtectLiveGalleryFromEmptyUpload(client, log, env) {
-  const allowEmpty =
-    (env.FTP_ALLOW_EMPTY_GALLERY ?? '').trim().toLowerCase() === 'true';
-  const localCount = readEventsCountFromJsonFile(GALLERY_EVENTS_DIST);
-  if (localCount > 0 || allowEmpty) {
-    return [];
-  }
-
-  const tempPath = path.join(websiteRoot, 'logs', 'deploy-tmp', 'remote-gallery-events.json');
-  fs.mkdirSync(path.dirname(tempPath), { recursive: true });
-  let remoteCount = 0;
-  try {
-    await client.downloadTo(tempPath, GALLERY_EVENTS_REMOTE);
-    remoteCount = readEventsCountFromJsonFile(tempPath);
-  } catch {
-    remoteCount = 0;
-  } finally {
-    if (fs.existsSync(tempPath)) {
-      fs.unlinkSync(tempPath);
-    }
-  }
-
-  if (remoteCount === 0) {
-    return [];
-  }
-
-  log(
-    `Local gallery is empty but live gallery has ${remoteCount} event(s). Keeping live gallery files.`,
-  );
-  log('Set FTP_ALLOW_EMPTY_GALLERY=true in .env.local to force an empty gallery upload.');
-
-  const skipped = [];
-  for (const filePath of [GALLERY_EVENTS_DIST, GALLERY_ACCESS_DIST]) {
-    if (!fs.existsSync(filePath)) continue;
-    const asidePath = `${filePath}.skip-empty`;
-    fs.renameSync(filePath, asidePath);
-    skipped.push(path.basename(filePath));
-  }
-  return skipped;
 }
 
 function writeProductionLeadConfig(env, log) {
