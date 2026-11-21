@@ -215,14 +215,19 @@ async function uploadDist(env, log) {
     log(`Ensured remote directory exists: ${remoteDir}`);
 
     await client.cd(remoteDir);
-    const pwd = await client.pwd();
-    log(`Remote working directory: ${pwd}`);
+    const siteRoot = await client.pwd();
+    log(`Remote working directory: ${siteRoot}`);
 
+    // ensureDir() changes the FTP working directory. Always return to the site root
+    // afterwards, otherwise the upload lands inside data/backups/ and the live gallery
+    // JSON is never replaced.
     await ensureRemoteBackupProtection(client, log);
+    await client.cd(siteRoot);
     await backupLiveGalleryOnServer(client, log);
+    await client.cd(siteRoot);
 
-    log('Uploading dist/ contents...');
-    await client.uploadFromDir(distDir);
+    log(`Uploading dist/ contents to ${siteRoot}...`);
+    await client.uploadFromDir(distDir, siteRoot);
     log(`Upload complete (${files.length} file(s)).`);
   } catch (error) {
     throw new Error(`FTP upload failed: ${formatFtpError(error, host)}`);
@@ -238,7 +243,9 @@ function stampForBackup() {
 }
 
 async function ensureRemoteBackupProtection(client, log) {
+  const siteRoot = await client.pwd();
   await client.ensureDir(REMOTE_GALLERY_BACKUP_DIR);
+  await client.cd(siteRoot);
   if (!fs.existsSync(BACKUP_DENY_HTACCESS)) {
     log('Warning: missing public/data/backups/.htaccess — backup folder may be web-readable.');
     return;
@@ -248,7 +255,9 @@ async function ensureRemoteBackupProtection(client, log) {
 }
 
 async function pruneRemoteBackups(client, log, prefix) {
+  const siteRoot = await client.pwd();
   const entries = await client.list(REMOTE_GALLERY_BACKUP_DIR);
+  await client.cd(siteRoot);
   const backups = entries
     .filter((entry) => entry.isFile && entry.name.startsWith(`${prefix}.`) && entry.name.endsWith('.bak'))
     .sort((a, b) => b.name.localeCompare(a.name));
@@ -261,7 +270,7 @@ async function pruneRemoteBackups(client, log, prefix) {
 }
 
 async function backupLiveGalleryOnServer(client, log) {
-  // Live host has public gallery JSON (not local admin gallery.json).
+  const siteRoot = await client.pwd();
   const remoteFiles = [
     { remotePath: GALLERY_EVENTS_REMOTE, prefix: 'gallery-events.json' },
     { remotePath: GALLERY_ACCESS_REMOTE, prefix: 'gallery-access.json' },
@@ -274,15 +283,18 @@ async function backupLiveGalleryOnServer(client, log) {
       `arra-gallery-backup-${process.pid}-${file.prefix}`,
     );
     try {
+      await client.cd(siteRoot);
       await client.downloadTo(tempPath, file.remotePath);
       const contents = fs.readFileSync(tempPath);
       if (contents.length === 0) {
         log(`Production backup skipped (empty): ${file.remotePath}`);
         continue;
       }
+      await client.cd(siteRoot);
       const remoteBackupPath = `${REMOTE_GALLERY_BACKUP_DIR}/${file.prefix}.${stamp}.bak`;
       await client.uploadFrom(tempPath, remoteBackupPath);
       log(`Production backup saved: ${remoteBackupPath}`);
+      await client.cd(siteRoot);
       await pruneRemoteBackups(client, log, file.prefix);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -291,6 +303,7 @@ async function backupLiveGalleryOnServer(client, log) {
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);
       }
+      await client.cd(siteRoot);
     }
   }
 }
