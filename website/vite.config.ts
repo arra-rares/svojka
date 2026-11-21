@@ -55,7 +55,36 @@ function readGalleryData(): GalleryDataFile {
   return JSON.parse(fileContent) as GalleryDataFile;
 }
 
+function backupGallerySourceBeforeWrite() {
+  if (!fs.existsSync(dataFilePath)) {
+    return;
+  }
+
+  const backupDir = path.resolve(__dirname, 'data/backups');
+  fs.mkdirSync(backupDir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const prefix = 'gallery.json';
+  const targetPath = path.join(backupDir, `${prefix}.${stamp}.bak`);
+  fs.copyFileSync(dataFilePath, targetPath);
+
+  const keep = 10;
+  const existing = fs
+    .readdirSync(backupDir)
+    .filter((name) => name.startsWith(`${prefix}.`) && name.endsWith('.bak'))
+    .map((name) => ({
+      name,
+      fullPath: path.join(backupDir, name),
+      mtimeMs: fs.statSync(path.join(backupDir, name)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+  for (const outdated of existing.slice(keep)) {
+    fs.unlinkSync(outdated.fullPath);
+  }
+}
+
 function writeGalleryData(data: GalleryDataFile) {
+  backupGallerySourceBeforeWrite();
   const payload = `${JSON.stringify(data, null, 2)}\n`;
   const tempPath = `${dataFilePath}.${process.pid}.tmp`;
   fs.writeFileSync(tempPath, payload, 'utf8');

@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Client } from 'basic-ftp';
 import { loadEnv } from 'vite';
+import { backupBufferRolling } from './rolling-backup.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const websiteRoot = path.resolve(__dirname, '..');
@@ -209,6 +210,8 @@ async function uploadDist(env, log) {
     const pwd = await client.pwd();
     log(`Remote working directory: ${pwd}`);
 
+    await backupRemoteGalleryFiles(client, log);
+
     log('Uploading dist/ contents...');
     await client.uploadFromDir(distDir);
     log(`Upload complete (${files.length} file(s)).`);
@@ -219,6 +222,36 @@ async function uploadDist(env, log) {
   }
 
   return files.length;
+}
+
+async function backupRemoteGalleryFiles(client, log) {
+  const remoteFiles = [
+    { remotePath: 'data/gallery-events.json', label: 'prod-gallery-events.json' },
+    { remotePath: 'data/gallery-access.json', label: 'prod-gallery-access.json' },
+  ];
+  const tempDir = path.join(websiteRoot, 'data/backups');
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  for (const file of remoteFiles) {
+    const tempPath = path.join(tempDir, `._download-${file.label}`);
+    try {
+      await client.downloadTo(tempPath, file.remotePath);
+      const contents = fs.readFileSync(tempPath);
+      if (contents.length === 0) {
+        log(`Backup skipped (empty remote file): ${file.remotePath}`);
+        continue;
+      }
+      const savedPath = backupBufferRolling(contents, file.label);
+      log(`Backed up remote ${file.remotePath} → ${path.basename(savedPath)}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log(`Backup warning for ${file.remotePath}: ${message}`);
+    } finally {
+      if (fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
+      }
+    }
+  }
 }
 
 function writeProductionLeadConfig(env, log) {

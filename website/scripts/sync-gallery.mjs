@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { backupFileRolling } from './rolling-backup.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sourceFile = path.resolve(__dirname, '../data/gallery.json');
@@ -29,6 +30,9 @@ function syncGallery() {
   }));
 
   fs.mkdirSync(outputDir, { recursive: true });
+  backupFileRolling(eventsOutputFile);
+  backupFileRolling(accessOutputFile);
+  backupFileRolling(sourceFile);
   fs.writeFileSync(eventsOutputFile, `${JSON.stringify({ events: publicEvents }, null, 2)}\n`, 'utf8');
   fs.writeFileSync(accessOutputFile, `${JSON.stringify({ events: accessEvents }, null, 2)}\n`, 'utf8');
 

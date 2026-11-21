@@ -30,10 +30,23 @@ Keep the black terminal window open while working. Closing it stops the local se
 ## What "Upload to website" does
 
 1. Builds the production site (`npm run build`)
-2. Uploads `website/dist/` to Webhouse via FTP
-3. Live site updates — gallery, images, text changes included
+2. Backs up current live `gallery-events.json` / `gallery-access.json` into `website/data/backups/`
+3. Uploads `website/dist/` to Webhouse via FTP
+4. Live site updates — gallery, images, text changes included
 
 Upload can take a few minutes. Do not close the window during upload.
+
+### Gallery backups (rolling)
+
+Kept under `website/data/backups/` (last **10** copies each, not committed to git):
+
+| When | What |
+|------|------|
+| Admin create/edit/hide | `gallery.json.<stamp>.bak` |
+| Build / sync | `gallery-events.json` + `gallery-access.json` + `gallery.json` |
+| Upload to website | `prod-gallery-events.json` + `prod-gallery-access.json` (from live host) |
+
+To restore: copy a `.bak` file back over the matching live/local JSON (rename/remove the `.stamp.bak` suffix), then upload again if needed.
 
 ## Booking form (leads)
 
