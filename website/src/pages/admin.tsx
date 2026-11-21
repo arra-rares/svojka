@@ -367,7 +367,7 @@ export function AdminPage({ onBackHome }: AdminPageProps) {
 
   async function handlePullGallery() {
     const confirmed = window.confirm(
-      'Download gallery from the live website?\n\nThis overwrites local gallery.json, public gallery JSON, and cover images with what is currently on the server.',
+      'Download gallery from the live website?\n\nThis action is destructive, you will lose any changes you have locally, ask Rares before doing something stupid.\n\nIt overwrites local gallery.json, public gallery JSON, and cover images with what is currently on the server.',
     );
     if (!confirmed) return;
 
