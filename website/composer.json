@@ -1,0 +1,12 @@
+{
+  "name": "arra/svojka-website-api",
+  "description": "Pinned PHP dependencies for the Webhouse lead API",
+  "require": {
+    "php": ">=7.0",
+    "phpmailer/phpmailer": "6.9.3"
+  },
+  "config": {
+    "vendor-dir": "public/api/vendor",
+    "sort-packages": true
+  }
+}

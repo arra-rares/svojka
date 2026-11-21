@@ -172,17 +172,74 @@ function leadAppendLog(string $logFile, array $lead): bool
     return file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX) !== false;
 }
 
+function leadLoadSmtpConfig(): array
+{
+    $candidates = [
+        // Preferred: outside site document root (e.g. /www_root/smtp-config.local.php).
+        __DIR__ . '/../../smtp-config.local.php',
+        // Fallback: api/smtp-config.local.php (gitignored + denied by api/.htaccess).
+        __DIR__ . '/smtp-config.local.php',
+    ];
+
+    foreach ($candidates as $path) {
+        if (!is_file($path)) {
+            continue;
+        }
+        $loaded = require $path;
+        if (is_array($loaded)) {
+            return $loaded;
+        }
+    }
+
+    return [];
+}
+
+function leadLogDelivery(string $status, string $logDir)
+{
+    error_log('arra-lead-mail: ' . $status);
+
+    if (!is_dir($logDir) && !mkdir($logDir, 0755, true) && !is_dir($logDir)) {
+        return;
+    }
+
+    $line = json_encode(
+        [
+            'date' => gmdate('c'),
+            'status' => $status,
+        ],
+        JSON_UNESCAPED_UNICODE
+    ) . PHP_EOL;
+
+    @file_put_contents($logDir . '/mail-delivery.jsonl', $line, FILE_APPEND | LOCK_EX);
+}
+
 function leadSendEmail(array $config, array $lead): bool
 {
-    $to = $config['to_email'] ?? '';
-    if ($to === '') {
+    $smtp = leadLoadSmtpConfig();
+    $logDir = dirname($config['log_file'] ?? (__DIR__ . '/logs/leads.jsonl'));
+
+    $to = trim((string) ($smtp['to_email'] ?? $config['to_email'] ?? ''));
+    $fromEmail = trim((string) ($smtp['from_email'] ?? $config['from_email'] ?? $to));
+    $fromName = trim((string) ($smtp['from_name'] ?? $config['from_name'] ?? 'ARRA Website'));
+    $host = trim((string) ($smtp['host'] ?? ''));
+    $username = trim((string) ($smtp['username'] ?? ''));
+    $password = (string) ($smtp['password'] ?? '');
+    $port = isset($smtp['port']) ? (int) $smtp['port'] : 587;
+
+    if ($to === '' || $fromEmail === '' || $host === '' || $username === '' || $password === '') {
+        leadLogDelivery('smtp_config_incomplete', $logDir);
         return false;
     }
 
-    $fromEmail = $config['from_email'] ?? $to;
-    $fromName = $config['from_name'] ?? 'ARRA Website';
-    $subject = 'New event inquiry - ' . $lead['event_date'];
+    $autoload = __DIR__ . '/vendor/autoload.php';
+    if (!is_file($autoload)) {
+        leadLogDelivery('phpmailer_missing', $logDir);
+        return false;
+    }
 
+    require_once $autoload;
+
+    $subject = 'New event inquiry - ' . $lead['event_date'];
     $lines = [
         'New booking request from the website',
         '',
@@ -194,19 +251,34 @@ function leadSendEmail(array $config, array $lead): bool
         'Event type: ' . ($lead['type'] !== '' ? $lead['type'] : '(not provided)'),
         'Guests: ' . ($lead['people'] !== '' ? $lead['people'] : '(not provided)'),
     ];
-
     $body = implode("\n", $lines);
-    $headers = [
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset=UTF-8',
-        'From: ' . sprintf('%s <%s>', $fromName, $fromEmail),
-        'Reply-To: ' . $lead['email'],
-    ];
 
-    $sent = mail($to, $subject, $body, implode("\r\n", $headers));
+    try {
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = $host;
+        $mail->Port = $port;
+        $mail->SMTPAuth = true;
+        $mail->Username = $username;
+        $mail->Password = $password;
+        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->CharSet = 'UTF-8';
+        $mail->isHTML(false);
 
-    // PHP 7.0 mail() can return null on some hosts; strict :bool rejects that.
-    return $sent === true;
+        $mail->setFrom($fromEmail, $fromName);
+        $mail->addAddress($to);
+        $mail->addReplyTo($lead['email']);
+        $mail->Subject = $subject;
+        $mail->Body = $body;
+
+        $mail->send();
+        leadLogDelivery('sent', $logDir);
+        return true;
+    } catch (\Throwable $error) {
+        // Do not log passwords, SMTP dialogue, or raw lead content.
+        leadLogDelivery('smtp_failed', $logDir);
+        return false;
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

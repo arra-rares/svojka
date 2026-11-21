@@ -318,6 +318,45 @@ return [
   log('Wrote dist/api/lead-config.local.php for production reCAPTCHA.');
 }
 
+function writeProductionSmtpConfig(env, log) {
+  const password = env.SMTP_PASSWORD?.trim();
+  const configPath = path.join(distDir, 'api/smtp-config.local.php');
+
+  if (!password) {
+    log(
+      'Warning: SMTP_PASSWORD missing in .env.local — lead email will fail unless smtp-config.local.php already exists on the server (preferred: /www_root/smtp-config.local.php).',
+    );
+    return;
+  }
+
+  const host = (env.SMTP_HOST?.trim() || 'mail.webhouse.sk');
+  const port = Number(env.SMTP_PORT?.trim() || '587');
+  const username = (env.SMTP_USERNAME?.trim() || 'arra@jstudio.sk');
+  const toEmail = (env.SMTP_TO_EMAIL?.trim() || 'arra@jstudio.sk');
+  const fromEmail = (env.SMTP_FROM_EMAIL?.trim() || toEmail);
+  const fromName = (env.SMTP_FROM_NAME?.trim() || 'ARRA Website');
+
+  const contents = `<?php
+
+declare(strict_types=1);
+
+// Generated during deploy from .env.local — do not commit.
+return [
+    'host' => ${JSON.stringify(host)},
+    'port' => ${Number.isFinite(port) ? port : 587},
+    'encryption' => 'tls',
+    'username' => ${JSON.stringify(username)},
+    'password' => ${JSON.stringify(password)},
+    'to_email' => ${JSON.stringify(toEmail)},
+    'from_email' => ${JSON.stringify(fromEmail)},
+    'from_name' => ${JSON.stringify(fromName)},
+];
+`;
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, contents, 'utf8');
+  log('Wrote dist/api/smtp-config.local.php for production SMTP (blocked from web by api/.htaccess).');
+}
+
 function writeLogFile(lines) {
   fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
   fs.writeFileSync(logFilePath, `${lines.join('\n')}\n`, 'utf8');
@@ -333,6 +372,7 @@ async function main() {
     log(`Platform: ${process.platform}`);
     runBuild(log);
     writeProductionLeadConfig(env, log);
+    writeProductionSmtpConfig(env, log);
     log('Uploading to Webhouse via FTP...');
     const uploadedCount = await uploadDist(env, log);
     log(`Deploy finished successfully (${uploadedCount} file(s) uploaded).`);

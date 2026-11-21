@@ -3,5 +3,8 @@ dist
 logs
 data/leads.jsonl
 public/api/logs/*.jsonl
+public/api/lead-config.local.php
+public/api/smtp-config.local.php
+config/smtp-config.local.php
 *.local
 .DS_Store

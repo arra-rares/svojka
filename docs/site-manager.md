@@ -65,10 +65,10 @@ Stored **only on the server** (not kept on the PC):
 
 ## Booking form (leads)
 
-The **Check Availability** form POSTs to `/api/lead`. Spam protection: **honeypot** + **reCAPTCHA v2**.
+The **Check Availability** form POSTs to `/api/lead.php`. Spam protection: **honeypot** + **reCAPTCHA v2**.
 
-- **Production (Webhouse):** PHP verifies reCAPTCHA, sends email to `arra@jstudio.sk`, appends `api/logs/leads.jsonl`.
-- **Local dev:** same verification via Vite; saves to `website/data/leads.jsonl` (no email).
+- **Production (Webhouse):** PHP verifies reCAPTCHA, appends `api/logs/leads.jsonl`, sends email via **PHPMailer SMTP** (not `mail()`).
+- **Local dev:** Vite saves to `website/data/leads.jsonl` (no SMTP email).
 
 ### reCAPTCHA setup
 
@@ -77,13 +77,45 @@ The **Check Availability** form POSTs to `/api/lead`. Spam protection: **honeypo
 3. In `website/.env.local`:
    - `VITE_RECAPTCHA_SITE_KEY` — site key (frontend)
    - `RECAPTCHA_SECRET_KEY` — secret key (dev server)
-4. On Webhouse after deploy: upload includes `api/lead-config.local.php` automatically when `RECAPTCHA_SECRET_KEY` is in `.env.local` (generated at deploy, not committed).
+4. On Upload, deploy writes `api/lead-config.local.php` when `RECAPTCHA_SECRET_KEY` is set.
 
-Optional manual override on server: `api/lead-config.local.php`.
+### SMTP email setup (required — Webhouse disabled `mail()`)
 
-**Debug live server:** open `https://your-domain/api/lead-status.php` — should show `recaptcha_configured: true` and `recaptcha_secret_length` > 0.
+1. In Webhouse panel, set PHP for the domain to **7.4+ or 8.x** if available (current code also works on 7.0 with vendored PHPMailer **6.9.3**).
+2. Add to `website/.env.local` (never commit):
 
-Domains in Google admin must include your **live domain** (e.g. `svojka.com` and `www.svojka.com`).
+```env
+SMTP_HOST=mail.webhouse.sk
+SMTP_PORT=587
+SMTP_USERNAME=arra@jstudio.sk
+SMTP_PASSWORD=your-mailbox-password
+SMTP_TO_EMAIL=arra@jstudio.sk
+SMTP_FROM_EMAIL=arra@jstudio.sk
+SMTP_FROM_NAME=ARRA Website
+```
+
+3. Click **Upload to website** — deploy writes `dist/api/smtp-config.local.php` (blocked from HTTP by `api/.htaccess`).
+
+**Preferred (more secure) password placement:** copy `website/config/smtp-config.example.php` → `/www_root/smtp-config.local.php` (one level **above** the site folder, outside the web root) and set the real password there. `lead.php` loads that path first.
+
+### Files that must be on production for email
+
+| Path | Purpose |
+|------|---------|
+| `api/lead.php` | Handler (SMTP via PHPMailer) |
+| `api/vendor/**` | PHPMailer 6.9.3 |
+| `api/.htaccess` | Denies `*-config.local.php` + `/vendor` |
+| `api/lead-config.php` (+ local) | reCAPTCHA + defaults |
+| `api/smtp-config.local.php` **or** `/www_root/smtp-config.local.php` | SMTP password (never commit) |
+
+### Verify
+
+1. `https://svojka.com/api/lead-status.php` → `recaptcha_configured: true`, `smtp_configured: true`, `phpmailer_present: true`, `openssl_available: true`
+2. Submit a test lead on the live site
+3. Check inbox/spam for `arra@jstudio.sk`
+4. FTP: `api/logs/leads.jsonl` (lead saved) and `api/logs/mail-delivery.jsonl` (`status: sent` or `smtp_failed`)
+
+Lead save still succeeds if SMTP fails (`mail_sent: false`, `log_saved: true`).
 
 ## Notes
 
