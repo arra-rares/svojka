@@ -337,10 +337,12 @@ function writeProductionSmtpConfig(env, log) {
 
   if (!password) {
     log(
-      'Warning: SMTP_PASSWORD missing in .env.local — lead email will fail unless smtp-config.local.php already exists on the server (preferred: /www_root/smtp-config.local.php).',
+      'Warning: SMTP_PASSWORD was not loaded from .env.local (empty after parsing). Put it in double quotes if it contains #: SMTP_PASSWORD="your#password"',
     );
     return;
   }
+
+  log(`SMTP_PASSWORD loaded (${password.length} characters).`);
 
   const host = (env.SMTP_HOST?.trim() || 'mail.webhouse.sk');
   const port = Number(env.SMTP_PORT?.trim() || '587');

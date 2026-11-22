@@ -10,5 +10,8 @@
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  # This directory's rewrite rules replace the site-root rules.
+  # /api/lead must be mapped here, or Apache returns 404.
+  RewriteRule ^lead$ lead.php [L]
   RewriteRule ^vendor/ - [F,L]
 </IfModule>
